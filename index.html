@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Food Lab | Premium Cloud Kitchen</title>
+  <meta name="description" content="Lab Tested Deliciousness. Order premium food from TFL sub-brands including Project Paratha, Rice Bowl Rocketry, and more.">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="customer.css">
+  
+  <!-- Web App Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ff6b00">
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- HEADER / HERO SECTION -->
+    <header id="tfl-hero" class="hero" style="background-image: url('tfl_hero.png');">
+      <div class="hero-content">
+        <div class="hero-title-row">
+          <div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <img id="tfl-logo" src="tfl_logo.png" alt="TFL Logo" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-primary);">
+              <h1 id="restaurant-title" class="brand-title">The Food <span>Lab</span></h1>
+            </div>
+            <p id="restaurant-tagline" class="brand-tagline">Lab Tested Deliciousness</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <button id="theme-toggle" class="theme-toggle-btn" onclick="TFL_DB.toggleTheme()" aria-label="Toggle Theme">
+              <!-- Rendered dynamically by JS -->
+            </button>
+            <span id="kitchen-status-badge" class="status-badge status-open">Open</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- SEARCH & FILTER BAR -->
+    <div class="search-filter-container">
+      <div class="search-box">
+        <i data-lucide="search"></i>
+        <input type="text" id="menu-search-input" class="form-control" placeholder="Search for dishes, sub-brands...">
+      </div>
+      <div class="filter-row">
+        <div class="filter-tabs">
+          <button id="filter-all" class="filter-pill active" onclick="setVegFilter('all')">All</button>
+          <button id="filter-veg" class="filter-pill" onclick="setVegFilter('veg')">
+            <span class="dot-icon dot-icon-veg" style="transform: scale(0.8);"></span> Veg Only
+          </button>
+          <button id="filter-nonveg" class="filter-pill" onclick="setVegFilter('nonveg')">
+            <span class="dot-icon dot-icon-nonveg" style="transform: scale(0.8);"></span> Non-Veg
+          </button>
+        </div>
+        <button id="btn-sort" class="filter-pill" onclick="toggleSortPrice()">
+          <i data-lucide="arrow-up-down" style="width: 14px; height: 14px;"></i> Price
+        </button>
+      </div>
+    </div>
+
+    <!-- ANNOUNCEMENTS & UPDATES SECTION -->
+    <section class="updates-section" id="announcements-section">
+      <h2 class="section-title">Lab Updates & Offers</h2>
+      <div class="updates-carousel" id="updates-carousel-container">
+        <!-- Shimmer Placeholder Cards -->
+        <div class="update-slide shimmer" style="height: 140px; border-radius: var(--radius-md); opacity: 0.3; flex: 0 0 280px;"></div>
+        <div class="update-slide shimmer" style="height: 140px; border-radius: var(--radius-md); opacity: 0.3; flex: 0 0 280px;"></div>
+      </div>
+    </section>
+
+    <!-- SUB-BRANDS (CATEGORIES) SECTION -->
+    <section class="subbrands-section">
+      <h2 class="section-title">Explore Sub-Brands</h2>
+      <div class="subbrands-grid" id="subbrands-grid-container">
+        <!-- Shimmer Placeholder Cards -->
+        <div class="subbrand-card shimmer" style="height: 80px; width: 90px; border-radius: var(--radius-md); opacity: 0.3; flex: 0 0 90px;"></div>
+        <div class="subbrand-card shimmer" style="height: 80px; width: 90px; border-radius: var(--radius-md); opacity: 0.3; flex: 0 0 90px;"></div>
+        <div class="subbrand-card shimmer" style="height: 80px; width: 90px; border-radius: var(--radius-md); opacity: 0.3; flex: 0 0 90px;"></div>
+      </div>
+    </section>
+
+    <!-- KITCHEN CLOSED NOTICE SCREEN -->
+    <div id="kitchen-closed-screen" class="closed-screen" style="display: none;">
+      <i class="closed-icon" data-lucide="lock"></i>
+      <h2 class="closed-title">We are Closed</h2>
+      <p id="kitchen-closed-message" class="closed-desc">Our kitchen is currently closed. Opening soon!</p>
+    </div>
+
+    <!-- MENU PRODUCTS SECTION -->
+    <main class="menu-section" id="menu-products-container">
+      <!-- Shimmer Placeholder Cards -->
+      <div class="product-card shimmer" style="height: 120px; border-radius: var(--radius-lg); opacity: 0.3; display: flex; gap: var(--space-md);"></div>
+      <div class="product-card shimmer" style="height: 120px; border-radius: var(--radius-lg); opacity: 0.3; display: flex; gap: var(--space-md);"></div>
+      <div class="product-card shimmer" style="height: 120px; border-radius: var(--radius-lg); opacity: 0.3; display: flex; gap: var(--space-md);"></div>
+    </main>
+
+  </div> <!-- End App Container -->
+
+  <!-- STICKY BOTTOM MOBILE CART BUTTON -->
+  <div id="sticky-cart-panel" class="sticky-cart-btn btn-primary" style="display: none;" onclick="toggleCartPanel(true)">
+    <div class="sticky-cart-info">
+      <span id="sticky-cart-qty-text" class="sticky-cart-count">2 Items Added</span>
+      <span id="sticky-cart-total-text" class="sticky-cart-total">₹249.00</span>
+    </div>
+    <div class="sticky-cart-view">
+      View Cart <i data-lucide="shopping-bag"></i>
+    </div>
+  </div>
+
+  <!-- BACKDROP FOR MODALS/SIDEBARS -->
+  <div id="modal-backdrop" class="backdrop" onclick="closeAllPanels()"></div>
+
+  <!-- CONDIMENTS / ADD-ONS MODAL SHEET -->
+  <div id="condiments-modal-sheet" class="condiments-modal">
+    <div class="condiments-header">
+      <div>
+        <h3 id="addon-item-name" style="color: #fff;">Customize Item</h3>
+        <p id="addon-item-subtitle" style="font-size: 0.8rem; color: var(--color-text-muted);">Choose optional add-ons</p>
+      </div>
+      <button class="slide-over-close" onclick="toggleAddonsModal(false)">&times;</button>
+    </div>
+    <div class="condiments-body">
+      <!-- Item Quantity Selector at the top -->
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: var(--space-md); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-md);">
+        <span style="font-weight: 600; color: #fff;">Set Quantity</span>
+        <div class="add-btn-wrapper" style="transform: scale(1.1); margin-right: 8px;">
+          <button type="button" id="btn-addon-qty-minus" onclick="adjustAddonProductQty(-1)">-</button>
+          <span id="addon-item-qty" class="add-btn-qty">1</span>
+          <button type="button" id="btn-addon-qty-plus" onclick="adjustAddonProductQty(1)">+</button>
+        </div>
+      </div>
+      
+      <div class="condiments-list" id="addons-checkboxes-container">
+        <!-- Addons checkboxes generated by JS -->
+      </div>
+    </div>
+    <div class="condiments-footer">
+      <button id="btn-save-addons" class="btn btn-primary" style="width: 100%;">Add to Cart</button>
+    </div>
+  </div>
+
+  <!-- SLIDE OVER CART PANEL -->
+  <div id="cart-slide-over" class="slide-over">
+    <div class="slide-over-header">
+      <h2 style="color: #fff; display: flex; align-items: center; gap: 8px;">
+        <i data-lucide="shopping-cart" style="color: var(--color-primary);"></i> TFL Lab Cart
+      </h2>
+      <button class="slide-over-close" onclick="toggleCartPanel(false)">&times;</button>
+    </div>
+    <div class="slide-over-body" id="cart-items-container">
+      <!-- Items generated dynamically by JS -->
+    </div>
+    <div class="slide-over-footer">
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: var(--space-md);">
+        <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+          <span style="color: var(--color-text-muted);">Cart Subtotal</span>
+          <span id="cart-subtotal-price">₹0.00</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+          <span style="color: var(--color-text-muted);">Delivery Charges</span>
+          <span id="cart-delivery-charge">₹40.00</span>
+        </div>
+        <div id="cart-late-night-row" style="display: none; justify-content: space-between; font-size: 0.9rem;">
+          <span style="color: var(--color-text-muted);">Late Night Fee</span>
+          <span id="cart-late-night-fee">₹0.00</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 1.1rem; border-top: 1px solid var(--color-border); padding-top: 8px; margin-top: 4px;">
+          <span style="color: #fff;">Grand Total</span>
+          <span id="cart-grand-total-price" style="color: var(--color-primary);">₹0.00</span>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="width: 100%;" onclick="openCheckoutPanel()">Proceed to Checkout</button>
+    </div>
+  </div>
+
+  <!-- SLIDE OVER CHECKOUT PANEL -->
+  <div id="checkout-slide-over" class="slide-over">
+    <div class="slide-over-header">
+      <h2 style="color: #fff; display: flex; align-items: center; gap: 8px;">
+        <i data-lucide="truck" style="color: var(--color-primary);"></i> Delivery Details
+      </h2>
+      <button class="slide-over-close" onclick="toggleCheckoutPanel(false)">&times;</button>
+    </div>
+    <div class="slide-over-body">
+      <form id="checkout-form" onsubmit="submitOrder(event)">
+        <div class="form-group">
+          <label class="form-label" for="cust-name">Name *</label>
+          <input type="text" id="cust-name" class="form-control" placeholder="Enter your full name" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="cust-gender">Gender *</label>
+          <select id="cust-gender" class="form-control" required style="background-color: #1c1c1e; color: #fff;">
+            <option value="" disabled selected style="color: #999;">Select your gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other / Prefer not to say</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="cust-phone">WhatsApp Number *</label>
+          <input type="tel" id="cust-phone" class="form-control" placeholder="10-digit mobile number" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="cust-address">Delivery Address *</label>
+          <textarea id="cust-address" class="form-control" placeholder="House/Flat No, Street, Landmark, Area" rows="3" required></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="cust-email">Email (Optional)</label>
+          <input type="email" id="cust-email" class="form-control" placeholder="For receipt copy">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Payment Method *</label>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
+            <label class="radio-label">
+              <input type="radio" name="payment-mode" value="COD" checked class="checkbox-custom" style="border-radius: 50%;" onchange="toggleUpiSection(false)">
+              Cash on Delivery (COD)
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="payment-mode" value="UPI" class="checkbox-custom" style="border-radius: 50%;" onchange="toggleUpiSection(true)">
+              Pay via UPI (Instant Sync)
+            </label>
+          </div>
+        </div>
+
+        <!-- UPI Details Section -->
+        <div id="checkout-upi-info" class="qr-container" style="display: none;">
+          <p style="font-size: 0.85rem; font-weight: 600; text-align: center; color: var(--color-warning);">
+            Scan to Pay & Copy UPI ID
+          </p>
+          <img id="checkout-upi-qr" src="" alt="UPI QR Code" class="qr-image">
+          <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+            <input type="text" id="checkout-upi-id" class="form-control" style="font-size: 0.8rem; padding: 0.5rem; text-align: center;" readonly>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="copyUpiId()">Copy</button>
+          </div>
+          <p style="font-size: 0.72rem; color: var(--color-text-muted); text-align: center;">
+            Note: Send payment screenshot on WhatsApp after receipt generation.
+          </p>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: var(--space-md);">Place Order</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- INTERACTIVE RECEIPT MODAL -->
+  <div id="receipt-modal" class="admin-modal" style="max-width: 480px;">
+    <div class="modal-header">
+      <h3 style="display: flex; align-items: center; gap: 8px;">
+        <i data-lucide="check-circle" style="color: var(--color-success);"></i> Order Confirmed!
+      </h3>
+      <button class="slide-over-close" onclick="closeReceiptModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <!-- Printable receipt container -->
+      <div id="print-receipt-area" class="receipt-wrapper">
+        <!-- Rendered dynamically by JS -->
+      </div>
+
+      <!-- UPI Verification Action Box -->
+      <div id="upi-verification-whatsapp-box" class="whatsapp-verification-box" style="display: none;">
+        <p>⚠️ <strong>UPI Payment:</strong> Please click below to send your payment screenshot on WhatsApp for verification.</p>
+        <button class="btn btn-success" style="width: 100%;" onclick="sendUpiScreenshotWhatsApp()">
+          <i data-lucide="image"></i> Verify Screenshot
+        </button>
+      </div>
+
+      <div class="receipt-actions" style="margin-top: var(--space-md);">
+        <button class="btn btn-secondary" onclick="printReceipt()">
+          <i data-lucide="printer"></i> Print Invoice
+        </button>
+        <button class="btn btn-secondary" onclick="downloadReceiptPDF()">
+          <i data-lucide="download"></i> Download PDF
+        </button>
+        <button class="btn btn-success" onclick="closeReceiptModal()" style="grid-column: span 2;">
+          <i data-lucide="edit-3"></i> Add / Modify Items
+        </button>
+        <button class="btn btn-danger" onclick="startNewOrder()" style="grid-column: span 2;">
+          <i data-lucide="plus-circle"></i> Start New Order
+        </button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" style="width: 100%;" onclick="sendOrderWhatsApp()">
+        <i data-lucide="message-square"></i> Send Order details on WhatsApp
+      </button>
+      <button id="btn-submit-gform" class="btn btn-secondary btn-sm" style="width: 100%; margin-top: var(--space-sm); font-size: 0.75rem; border-color: rgba(255,255,255,0.1);">
+        Send Here If Whatsapp Not Working
+      </button>
+    </div>
+  </div>
+
+  <!-- Shared DB module and customer script -->
+  <script src="db.js"></script>
+  <script src="customer.js"></script>
+  
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then((reg) => console.log('Service Worker registered:', reg.scope))
+          .catch((err) => console.error('Service Worker registration failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>

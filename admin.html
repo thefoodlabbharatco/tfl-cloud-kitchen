@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TFL | Admin Management Lab</title>
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="admin.css">
+  
+  <!-- Web App Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ff6b00">
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <!-- ADMIN LOGIN BACKDROP OVERLAY -->
+  <div id="login-overlay" class="login-backdrop">
+    <div class="login-card anim-scale-in">
+      <div class="login-header">
+        <h1 class="login-title">The Food <span>Lab</span></h1>
+        <p class="form-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-primary);">
+          Control Operations Center
+        </p>
+      </div>
+      <form id="admin-login-form" onsubmit="handleAdminLogin(event)">
+        <div class="form-group">
+          <label class="form-label" for="login-username">Username</label>
+          <input type="text" id="login-username" class="form-control" placeholder="e.g. vivek.tfl" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="login-password">Password</label>
+          <input type="password" id="login-password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        <div id="login-error-msg" style="color: var(--color-danger); font-size: 0.8rem; display: none; text-align: center; margin-bottom: var(--space-sm);">
+          Invalid username or password configuration!
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Access Operations</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN ADMIN CONSOLE CONTAINER -->
+  <div class="admin-container" id="admin-dashboard-container" style="display: none;">
+    
+    <!-- SIDE NAVIGATION SIDEBAR -->
+    <aside class="sidebar" id="dashboard-sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo">
+          <img id="admin-logo-preview" src="tfl_logo.png" alt="Logo" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+          <h2 id="admin-sidebar-title">The Food <span>Lab</span></h2>
+        </div>
+        <span class="sidebar-tagline">Admin Control Panel</span>
+      </div>
+      
+      <nav class="sidebar-menu">
+        <div class="sidebar-item active" onclick="switchTab('dashboard')" id="tab-dashboard">
+          <i data-lucide="layout-dashboard"></i> Dashboard
+        </div>
+        <div class="sidebar-item" onclick="switchTab('orders')" id="tab-orders">
+          <i data-lucide="shopping-cart"></i> Orders
+        </div>
+        <div class="sidebar-item" onclick="switchTab('products')" id="tab-products">
+          <i data-lucide="chef-hat"></i> Products
+        </div>
+        <div class="sidebar-item" onclick="switchTab('subbrands')" id="tab-subbrands">
+          <i data-lucide="flame"></i> Sub-Brands
+        </div>
+        <div class="sidebar-item" onclick="switchTab('announcements')" id="tab-announcements">
+          <i data-lucide="megaphone"></i> Updates & Banners
+        </div>
+        <div class="sidebar-item" onclick="switchTab('customization')" id="tab-customization">
+          <i data-lucide="palette"></i> Brand Customization
+        </div>
+        <div class="sidebar-item" onclick="switchTab('admins')" id="tab-admins">
+          <i data-lucide="users"></i> Admin Staff
+        </div>
+        <div class="sidebar-item" onclick="switchTab('settings')" id="tab-settings">
+          <i data-lucide="sliders"></i> Settings
+        </div>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <div class="admin-profile">
+          <div class="profile-avatar" id="admin-avatar">A</div>
+          <div class="profile-info">
+            <span class="profile-name" id="admin-name">Admin User</span>
+            <span class="profile-role" id="admin-role">Owner</span>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="handleAdminLogout()">
+          <i data-lucide="log-out" style="width: 14px; height: 14px;"></i> Log Out
+        </button>
+      </div>
+    </aside>
+
+    <!-- MAIN SCROLLABLE CONTENT AREA -->
+    <main class="main-content">
+      
+      <!-- TOP STATUS ROW -->
+      <header class="content-header">
+        <div>
+          <button class="hamburger-menu" onclick="toggleSidebarMenu()" style="margin-right: var(--space-md); vertical-align: middle;">
+            <i data-lucide="menu"></i>
+          </button>
+          <span class="content-title" id="page-title">Dashboard Overview</span>
+        </div>
+        
+        <div class="content-actions">
+          <button id="theme-toggle" class="theme-toggle-btn" onclick="TFL_DB.toggleTheme()" aria-label="Toggle Theme">
+            <!-- Rendered dynamically by JS -->
+          </button>
+          <div id="db-sync-status-banner" class="badge" style="display: none;">
+            <i data-lucide="refresh-cw" style="width: 12px; height: 12px;"></i> Synced
+          </div>
+          <button id="btn-force-sync" class="btn btn-secondary btn-sm" onclick="syncCloudDB()" style="display: none;">
+            <i data-lucide="cloud-lightning" style="width: 14px; height: 14px;"></i> Sync Cloud
+          </button>
+        </div>
+      </header>
+
+      <!-- TAB: DASHBOARD MODULE -->
+      <section id="section-dashboard" class="tab-panel active">
+        <!-- KPI METRICS FILTER BAR -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md); flex-wrap: wrap; gap: 12px;">
+          <h3 style="margin: 0; font-size: 1.1rem; font-weight: 600;">Performance Analytics</h3>
+          <div style="display: flex; gap: var(--space-sm);">
+            <button class="filter-pill active" id="kpi-filter-today" onclick="filterKPIs('today')">Today</button>
+            <button class="filter-pill" id="kpi-filter-week" onclick="filterKPIs('week')">This Week</button>
+            <button class="filter-pill" id="kpi-filter-month" onclick="filterKPIs('month')">This Month</button>
+          </div>
+        </div>
+
+        <!-- KPI METRICS GRID -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon"><i data-lucide="package"></i></div>
+            <div class="stat-info">
+              <span class="stat-label" id="kpi-orders-label">Today's Orders</span>
+              <span class="stat-value" id="kpi-orders-count">0</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon sales"><i data-lucide="indian-rupee"></i></div>
+            <div class="stat-info">
+              <span class="stat-label">Total Revenue</span>
+              <span class="stat-value" id="kpi-sales">₹0</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon cost"><i data-lucide="coins"></i></div>
+            <div class="stat-info">
+              <span class="stat-label">Total Cost</span>
+              <span class="stat-value" id="kpi-cost">₹0</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon delivery"><i data-lucide="truck"></i></div>
+            <div class="stat-info">
+              <span class="stat-label">Delivery Fees</span>
+              <span class="stat-value" id="kpi-delivery">₹0</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon late-night"><i data-lucide="moon"></i></div>
+            <div class="stat-info">
+              <span class="stat-label">Late Night Fees</span>
+              <span class="stat-value" id="kpi-late-night">₹0</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon profit"><i data-lucide="trending-up"></i></div>
+            <div class="stat-info">
+              <span class="stat-label">Net Profit</span>
+              <span class="stat-value" id="kpi-profit">₹0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- RECENT ORDERS TABLE LIST -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);">
+          <h3 style="color: #fff;">Incoming Formulations (Today)</h3>
+          <button class="btn btn-secondary btn-sm" onclick="switchTab('orders')">View All</button>
+        </div>
+        <div class="table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Time</th>
+                <th>Customer</th>
+                <th>Items Summary</th>
+                <th>Net Price</th>
+                <th>Mode</th>
+                <th>Payment Status</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="recent-orders-list">
+              <!-- JS rendered -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB: ORDERS MODULE -->
+      <section id="section-orders" class="tab-panel" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md); gap: 12px; flex-wrap: wrap;">
+          <div style="display: flex; gap: var(--space-sm);">
+            <button class="filter-pill active" id="order-filter-all" onclick="filterOrdersByStatus('all')">All</button>
+            <button class="filter-pill" id="order-filter-pending" onclick="filterOrdersByStatus('Pending')">Pending</button>
+            <button class="filter-pill" id="order-filter-preparing" onclick="filterOrdersByStatus('Preparing')">Preparing</button>
+            <button class="filter-pill" id="order-filter-delivered" onclick="filterOrdersByStatus('Delivered')">Delivered</button>
+            <button class="filter-pill" id="order-filter-cancelled" onclick="filterOrdersByStatus('Cancelled')">Cancelled</button>
+          </div>
+          <div style="display: flex; gap: var(--space-sm);">
+            <button class="btn btn-secondary btn-sm" onclick="exportOrdersCSV()">
+              <i data-lucide="file-spreadsheet" style="width: 14px; height: 14px;"></i> Export CSV
+            </button>
+            <button class="btn btn-danger btn-sm" id="btn-clear-delivered" onclick="clearDeliveredOrders()">
+              <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Clear Delivered
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Date / Time</th>
+                <th>Customer Info</th>
+                <th>Formulation Details</th>
+                <th>Invoice</th>
+                <th>Payment Mode</th>
+                <th>Payment Status</th>
+                <th>Delivery Status</th>
+                <th>Operations</th>
+              </tr>
+            </thead>
+            <tbody id="orders-full-list">
+              <!-- JS rendered -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB: PRODUCTS MODULE -->
+      <section id="section-products" class="tab-panel" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);">
+          <h3 style="color: #fff;">Product Formulations Catalog</h3>
+          <button class="btn btn-primary btn-sm" onclick="openProductModal()">
+            <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add Product
+          </button>
+        </div>
+        
+        <div class="table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Product Info</th>
+                <th>Category</th>
+                <th>Price Details</th>
+                <th>Allowed Condiments</th>
+                <th>Stock</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="products-admin-list">
+              <!-- JS rendered -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB: SUB-BRANDS MODULE -->
+      <section id="section-subbrands" class="tab-panel" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);">
+          <h3 style="color: #fff;">Sub-Brands & Categories</h3>
+          <button class="btn btn-primary btn-sm" onclick="openSubBrandModal()">
+            <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add Sub-Brand
+          </button>
+        </div>
+        
+        <div class="table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Logo/Emoji</th>
+                <th>Name / ID</th>
+                <th>Sorting Order</th>
+                <th>Visibility</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="subbrands-admin-list">
+              <!-- JS rendered -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB: UPDATES MODULE -->
+      <section id="section-announcements" class="tab-panel" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);">
+          <h3 style="color: #fff;">Customer Announcements & Banners</h3>
+          <button class="btn btn-primary btn-sm" onclick="openUpdateModal()">
+            <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add Update Banner
+          </button>
+        </div>
+        
+        <div class="table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Banner Preview</th>
+                <th>Details</th>
+                <th>Launch Date</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="updates-admin-list">
+              <!-- JS rendered -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB: BRAND CUSTOMIZATION MODULE -->
+      <section id="section-customization" class="tab-panel" style="display: none;">
+        <form id="brand-customization-form" onsubmit="saveCustomization(event)" class="glass-panel" style="padding: var(--space-lg); border-radius: var(--radius-md); max-width: 700px;">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="cust-brand-name">Brand Name</label>
+              <input type="text" id="cust-brand-name" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="cust-brand-tagline">Tagline</label>
+              <input type="text" id="cust-brand-tagline" class="form-control" required>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="cust-primary-color">Theme Primary Color</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="color" id="cust-primary-color" class="form-control" style="width: 60px; padding: 4px; height: 42px;">
+                <input type="text" id="cust-primary-color-text" class="form-control" style="flex: 1;" placeholder="#ff6b00">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="cust-bg-color">Theme Background Color</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="color" id="cust-bg-color" class="form-control" style="width: 60px; padding: 4px; height: 42px;">
+                <input type="text" id="cust-bg-color-text" class="form-control" style="flex: 1;" placeholder="#0b0b0c">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="cust-logo-url">Brand Logo Image URL (or relative path like tfl_logo.png)</label>
+            <input type="text" id="cust-logo-url" class="form-control" placeholder="https://example.com/logo.png">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="cust-hero-url">Hero Section Background Image URL (or relative path like tfl_hero.png)</label>
+            <input type="text" id="cust-hero-url" class="form-control" placeholder="https://example.com/hero.png">
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="margin-top: var(--space-md);">Save Brand Aesthetics</button>
+        </form>
+      </section>
+
+      <!-- TAB: ADMIN STAFF MODULE -->
+      <section id="section-admins" class="tab-panel" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);">
+          <h3 style="color: #fff;">Operations User Base</h3>
+          <button class="btn btn-primary btn-sm" onclick="openAdminModal()">
+            <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add Admin User
+          </button>
+        </div>
+        
+        <div class="sync-banner unsynced" style="margin-bottom: var(--space-md);">
+          <span>⚠️ <strong>Security Warning:</strong> This application relies on localStorage/static sync. Do not use sensitive passwords or publish sensitive data on public directories.</span>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Access Level Role</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admins-admin-list">
+              <!-- JS rendered -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB: SETTINGS MODULE -->
+      <section id="section-settings" class="tab-panel" style="display: none;">
+        <form id="settings-management-form" onsubmit="saveSettings(event)" class="glass-panel" style="padding: var(--space-lg); border-radius: var(--radius-md); max-width: 700px;">
+          
+          <h4 style="color: #fff; margin-bottom: var(--space-md); border-bottom: 1px solid var(--color-border); padding-bottom: 8px;">
+            Kitchen Operational Status
+          </h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="settings-kitchen-toggle">Open Kitchen for Orders</label>
+              <label class="checkbox-label" style="margin-top: 10px;">
+                <input type="checkbox" id="settings-kitchen-toggle" class="checkbox-custom">
+                <span>Active (Open)</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="settings-delivery-charge">Delivery Charge (₹)</label>
+              <input type="number" id="settings-delivery-charge" class="form-control" required min="0">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="settings-late-night-toggle">Late Night Fee</label>
+              <label class="checkbox-label" style="margin-top: 10px;">
+                <input type="checkbox" id="settings-late-night-toggle" class="checkbox-custom">
+                <span>Enable Late Night Fee</span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="settings-late-night-amount">Late Night Fee Amount (₹)</label>
+              <input type="number" id="settings-late-night-amount" class="form-control" min="0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="settings-closed-msg">Custom Closed Message Notification</label>
+            <textarea id="settings-closed-msg" class="form-control" rows="2"></textarea>
+          </div>
+
+          <h4 style="color: #fff; margin-top: var(--space-xl); margin-bottom: var(--space-md); border-bottom: 1px solid var(--color-border); padding-bottom: 8px;">
+            Contact & Payments Setup
+          </h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="settings-wa-orders">Restaurant Orders WhatsApp Number</label>
+              <input type="text" id="settings-wa-orders" class="form-control" placeholder="Include country code (e.g. 919999999999)" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="settings-wa-support">Customer Support WhatsApp Number</label>
+              <input type="text" id="settings-wa-support" class="form-control" placeholder="Include country code (e.g. 919999999999)" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="settings-upi-id">UPI ID for Payments</label>
+              <input type="text" id="settings-upi-id" class="form-control" placeholder="e.g. merchant@upi" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="settings-upi-qr">UPI QR Image URL</label>
+              <input type="text" id="settings-upi-qr" class="form-control" placeholder="URL of your payment QR code" required>
+            </div>
+          </div>
+
+          <h4 style="color: #fff; margin-top: var(--space-xl); margin-bottom: var(--space-md); border-bottom: 1px solid var(--color-border); padding-bottom: 8px;">
+            External Sync Connectors
+          </h4>
+          <div class="form-group">
+            <label class="form-label" for="settings-sheet-toggle">Google Sheets 24/7 Cloud Sync</label>
+            <label class="checkbox-label" style="margin-top: 10px;">
+              <input type="checkbox" id="settings-sheet-toggle" class="checkbox-custom">
+              <span>Enable Cloud Database syncing</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="settings-sheet-url">Google Apps Script Web App URL (Paste URL ending in /exec)</label>
+            <input type="text" id="settings-sheet-url" class="form-control" placeholder="https://script.google.com/macros/s/.../exec">
+          </div>
+          
+          <div class="form-group" style="margin-top: var(--space-md); border-top: 1px dashed var(--color-border); padding-top: var(--space-md);">
+            <label class="form-label" for="settings-gform-link">Backup Google Form Prefilled Submission Link</label>
+            <input type="text" id="settings-gform-link" class="form-control" placeholder="https://docs.google.com/forms/.../formResponse?entry.id={name}...">
+            <span style="font-size: 0.72rem; color: var(--color-text-muted); margin-top: 4px;">
+              Format template entries: {name}, {phone}, {address}, {items}, {total}, {payment}
+            </span>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="margin-top: var(--space-md);">Save System Settings</button>
+        </form>
+      </section>
+
+    </main>
+  </div> <!-- End Dashboard Container -->
+
+  <!-- MODAL: ADD / EDIT PRODUCT -->
+  <div id="product-modal" class="admin-modal">
+    <div class="modal-header">
+      <h3 style="color: #fff;" id="product-modal-title">Formulate Product</h3>
+      <button class="slide-over-close" onclick="closeProductModal()">&times;</button>
+    </div>
+    <form id="product-form" onsubmit="handleProductSubmit(event)">
+      <div class="modal-body">
+        <input type="hidden" id="product-modal-id">
+        <div class="form-group">
+          <label class="form-label" for="p-name">Product Name *</label>
+          <input type="text" id="p-name" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="p-desc">Description *</label>
+          <textarea id="p-desc" class="form-control" rows="2" required></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="p-category">Sub-Brand Category *</label>
+            <select id="p-category" class="form-control" required>
+              <!-- Populated by JS -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="p-image">Image URL / Path *</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="p-image" class="form-control" placeholder="https://example.com/food.png" required>
+              <label class="btn btn-secondary" style="margin: 0; padding: 0.5rem 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 0.85rem; min-width: 100px;">
+                <i data-lucide="upload" style="width: 14px; height: 14px;"></i> Upload
+                <input type="file" id="p-image-file" accept="image/*" style="display: none;" onchange="handleProductImageUpload(this)">
+              </label>
+            </div>
+            <div id="p-image-status" style="font-size: 0.72rem; color: var(--color-success); margin-top: 4px; display: none;"></div>
+            <span style="font-size: 0.7rem; color: var(--color-text-muted); display: block; margin-top: 2px;">
+              Tip: Compress images under 1MB for optimal loading speed.
+            </span>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="p-cost">Cost Price (₹) *</label>
+            <input type="number" id="p-cost" class="form-control" required min="0" oninput="calculateModalProfit()">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="p-price">Selling Price (₹) *</label>
+            <input type="number" id="p-price" class="form-control" required min="0" oninput="calculateModalProfit()">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Calculated Profit Margins</label>
+            <span style="font-weight: 700; font-size: 1.1rem; color: var(--color-success); margin-top: 8px;" id="p-profit-margin">₹0.00</span>
+          </div>
+          <div class="form-group" style="justify-content: center;">
+            <label class="checkbox-label">
+              <input type="checkbox" id="p-veg" class="checkbox-custom" checked>
+              <span>Is Vegetarian</span>
+            </label>
+            <label class="checkbox-label" style="margin-top: 6px;">
+              <input type="checkbox" id="p-bestseller" class="checkbox-custom">
+              <span>Bestseller / Offer Card</span>
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Allowed Condiments & Add-Ons</label>
+          <div class="condiments-grid" id="product-condiments-checklist">
+            <!-- JS populated checkboxes -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Formulation</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- MODAL: ADD / EDIT SUBBRAND -->
+  <div id="subbrand-modal" class="admin-modal">
+    <div class="modal-header">
+      <h3 style="color: #fff;" id="subbrand-modal-title">Sub-Brand Setup</h3>
+      <button class="slide-over-close" onclick="closeSubBrandModal()">&times;</button>
+    </div>
+    <form id="subbrand-form" onsubmit="handleSubBrandSubmit(event)">
+      <div class="modal-body">
+        <input type="hidden" id="subbrand-modal-id">
+        <div class="form-group">
+          <label class="form-label" for="sb-name">Sub-Brand Name *</label>
+          <input type="text" id="sb-name" class="form-control" required placeholder="e.g. Project Paratha">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="sb-logo">Sub-Brand Logo (Emoji or Image URL) *</label>
+          <input type="text" id="sb-logo" class="form-control" required placeholder="🥞 or https://example.com/logo.png">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="sb-sort">Sort Order Index (Number)</label>
+            <input type="number" id="sb-sort" class="form-control" required min="1">
+          </div>
+          <div class="form-group" style="justify-content: flex-end;">
+            <label class="checkbox-label" style="margin-bottom: 12px;">
+              <input type="checkbox" id="sb-visible" class="checkbox-custom" checked>
+              <span>Visible on Homepage</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeSubBrandModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Sub-Brand</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- MODAL: ADD / EDIT ANNOUNCEMENT -->
+  <div id="update-modal" class="admin-modal">
+    <div class="modal-header">
+      <h3 style="color: #fff;" id="update-modal-title">Create Update Card</h3>
+      <button class="slide-over-close" onclick="closeUpdateModal()">&times;</button>
+    </div>
+    <form id="update-form" onsubmit="handleUpdateSubmit(event)">
+      <div class="modal-body">
+        <input type="hidden" id="update-modal-id">
+        <div class="form-group">
+          <label class="form-label" for="u-title">Announcement Title *</label>
+          <input type="text" id="u-title" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="u-desc">Announcement Description *</label>
+          <textarea id="u-desc" class="form-control" rows="2" required></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="u-image">Promo Image URL</label>
+          <input type="text" id="u-image" class="form-control" placeholder="https://example.com/banner.png">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="u-date">Launch Date</label>
+            <input type="date" id="u-date" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="u-type">Banner Type *</label>
+            <select id="u-type" class="form-control" required>
+              <option value="new_launch">New Launch</option>
+              <option value="offer_banner">Offer Banner</option>
+              <option value="coming_soon">Coming Soon</option>
+              <option value="festival">Festival Special</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="u-active" class="checkbox-custom" checked>
+            <span>Activate Announcement (Visible to Customers)</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeUpdateModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Publish Banner</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- MODAL: ADD / EDIT ADMIN -->
+  <div id="admin-user-modal" class="admin-modal">
+    <div class="modal-header">
+      <h3 style="color: #fff;" id="admin-modal-title">Configure Operations Account</h3>
+      <button class="slide-over-close" onclick="closeAdminModal()">&times;</button>
+    </div>
+    <form id="admin-user-form" onsubmit="handleAdminSubmit(event)">
+      <div class="modal-body">
+        <input type="hidden" id="admin-modal-mode"> <!-- 'add' or 'edit' -->
+        <input type="hidden" id="admin-original-username">
+        <div class="form-group">
+          <label class="form-label" for="adm-name">Full Name *</label>
+          <input type="text" id="adm-name" class="form-control" required placeholder="e.g. Sumit Yadav">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="adm-username">Username *</label>
+          <input type="text" id="adm-username" class="form-control" required placeholder="e.g. sumit.tfl">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="adm-password">Password *</label>
+          <input type="password" id="adm-password" class="form-control" required placeholder="••••••••">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="adm-role">Access Role *</label>
+          <select id="adm-role" class="form-control" required>
+            <option value="Owner">Owner (Full Operations Access)</option>
+            <option value="Manager">Manager (Manage Products & Orders)</option>
+            <option value="Staff">Staff (View/Update Orders only)</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeAdminModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Credentials</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- MODAL BACKDROP -->
+  <div id="admin-modal-backdrop" class="backdrop" onclick="closeAllModals()"></div>
+
+  <!-- Shared DB module and admin logic script -->
+  <script src="db.js"></script>
+  <script src="admin.js"></script>
+  
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then((reg) => console.log('Service Worker registered:', reg.scope))
+          .catch((err) => console.error('Service Worker registration failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>

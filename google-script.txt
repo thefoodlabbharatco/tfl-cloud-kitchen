@@ -1,0 +1,289 @@
+========================================================================
+GOOGLE APPS SCRIPT FOR THE FOOD LAB (TFL) SYNC DATABASE
+========================================================================
+
+Follow these 4 simple steps to set up your always-online cloud database for free:
+
+Step 1: Go to Google Drive (https://drive.google.com) and create a new Google Sheet.
+Step 2: Rename the sheet to "The Food Lab DB".
+Step 3: Click "Extensions" -> "Apps Script" in the top menu.
+Step 4: Delete any code in the editor, paste the script below, and click Save (the disk icon).
+Step 5: Click "Deploy" (top right) -> "New deployment".
+        - Click the gear icon next to "Select type" and select "Web app".
+        - Set "Execute as" to: "Me (your-email@gmail.com)"
+        - Set "Who has access" to: "Anyone" (Crucial! Otherwise, the app cannot receive orders from customers).
+        - Click "Deploy". Authorize permissions if prompted by Google.
+        - Copy the "Web app URL" generated. It should end with "/exec".
+Step 6: Paste this URL in the "Settings" tab of your Admin Dashboard (admin.html), enable the Google Sheet Sync toggle, and save!
+
+-------------------- COPY THE CODE BELOW THIS LINE --------------------
+
+// Google Apps Script backend for The Food Lab (TFL)
+// Handles GET (reading data), POST (saving orders, settings, products, updates) and Google Drive image uploads
+
+function doGet(e) {
+  var action = e.parameter.action || "getData";
+  var result = {};
+  
+  try {
+    if (action === "getData") {
+      result = {
+        status: "success",
+        settings: readSheetData("Settings"),
+        products: readSheetData("Products"),
+        subbrands: readSheetData("SubBrands"),
+        orders: readSheetData("Orders"),
+        admins: readSheetData("Admins"),
+        updates: readSheetData("Updates")
+      };
+    } else {
+      result = { status: "error", message: "Unknown action: " + action };
+    }
+  } catch (err) {
+    result = { status: "error", message: err.toString() };
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  var result = {};
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var action = data.action;
+    
+    if (action === "addOrder") {
+      appendRowToSheet("Orders", data.order);
+      result = { status: "success", message: "Order placed successfully" };
+    } else if (action === "syncAll") {
+      // Overwrite tables from Admin
+      if (data.settings) overwriteSheetData("Settings", data.settings);
+      if (data.products) overwriteSheetData("Products", data.products);
+      if (data.subbrands) overwriteSheetData("SubBrands", data.subbrands);
+      if (data.updates) overwriteSheetData("Updates", data.updates);
+      if (data.admins) overwriteSheetData("Admins", data.admins);
+      if (data.orders) overwriteSheetData("Orders", data.orders);
+      result = { status: "success", message: "Data synced successfully" };
+    } else if (action === "updateOrderStatus") {
+      updateOrderStatusInSheet(data.orderId, data.status);
+      result = { status: "success", message: "Order status updated" };
+    } else if (action === "updatePaymentStatus") {
+      updatePaymentStatusInSheet(data.orderId, data.paymentStatus);
+      result = { status: "success", message: "Payment status updated" };
+    } else if (action === "uploadImage") {
+      var fileUrl = uploadImageToDrive(data.fileName, data.mimeType, data.base64Data);
+      result = { status: "success", imageUrl: fileUrl };
+    } else {
+      result = { status: "error", message: "Unknown post action: " + action };
+    }
+  } catch (err) {
+    result = { status: "error", message: err.toString() };
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// --- HELPER FUNCTIONS ---
+
+function uploadImageToDrive(fileName, mimeType, base64Data) {
+  var folderName = "TFL Product Images";
+  var folder;
+  var folders = DriveApp.getFoldersByName(folderName);
+  
+  if (folders.hasNext()) {
+    folder = folders.next();
+  } else {
+    folder = DriveApp.createFolder(folderName);
+  }
+  
+  var decodedData = Utilities.base64Decode(base64Data);
+  var blob = Utilities.newBlob(decodedData, mimeType, fileName);
+  var file = folder.createFile(blob);
+  
+  // Make file public so the image can render on the website
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  
+  var fileId = file.getId();
+  // Return the direct download/view link
+  var directUrl = "https://docs.google.com/uc?export=download&id=" + fileId;
+  return directUrl;
+}
+
+function getOrCreateSheet(name) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+  }
+  return sheet;
+}
+
+function readSheetData(sheetName) {
+  var sheet = getOrCreateSheet(sheetName);
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  
+  if (lastRow < 2 || lastCol < 1) return [];
+  
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var rows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  
+  var data = [];
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    var obj = {};
+    for (var j = 0; j < headers.length; j++) {
+      var val = row[j];
+      // Parse JSON arrays or objects stored as strings
+      if (typeof val === "string" && (val.indexOf("[") === 0 || val.indexOf("{") === 0)) {
+        try {
+          val = JSON.parse(val);
+        } catch(e) {}
+      }
+      obj[headers[j]] = val;
+    }
+    data.push(obj);
+  }
+  return data;
+}
+
+function appendRowToSheet(sheetName, itemObj) {
+  var sheet = getOrCreateSheet(sheetName);
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  var headers = [];
+  
+  if (lastCol > 0) {
+    headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  }
+  
+  // Collect all unique keys from itemObj to update headers if needed
+  var itemKeys = Object.keys(itemObj);
+  var newHeaders = [].concat(headers);
+  var headerChanged = false;
+  
+  for (var i = 0; i < itemKeys.length; i++) {
+    var key = itemKeys[i];
+    if (newHeaders.indexOf(key) === -1) {
+      newHeaders.push(key);
+      headerChanged = true;
+    }
+  }
+  
+  if (headerChanged || lastCol === 0) {
+    sheet.getRange(1, 1, 1, newHeaders.length).setValues([newHeaders]);
+    headers = newHeaders;
+  }
+  
+  var newRow = [];
+  for (var j = 0; j < headers.length; j++) {
+    var val = itemObj[headers[j]];
+    if (val === undefined) {
+      newRow.push("");
+    } else if (typeof val === "object") {
+      newRow.push(JSON.stringify(val));
+    } else {
+      newRow.push(val);
+    }
+  }
+  
+  // Check if row already exists by id
+  var idColIdx = headers.indexOf("id") + 1;
+  var exists = false;
+  if (idColIdx > 0 && lastRow >= 2 && itemObj.id) {
+    var idValues = sheet.getRange(2, idColIdx, lastRow - 1, 1).getValues();
+    for (var k = 0; k < idValues.length; k++) {
+      if (idValues[k][0] === itemObj.id) {
+        var rowNum = k + 2;
+        sheet.getRange(rowNum, 1, 1, headers.length).setValues([newRow]);
+        exists = true;
+        break;
+      }
+    }
+  }
+  
+  if (!exists) {
+    sheet.appendRow(newRow);
+  }
+}
+
+function overwriteSheetData(sheetName, dataArray) {
+  var sheet = getOrCreateSheet(sheetName);
+  sheet.clear();
+  
+  if (!dataArray || dataArray.length === 0) return;
+  
+  // Extract headers
+  var headers = Object.keys(dataArray[0]);
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  
+  var rows = [];
+  for (var i = 0; i < dataArray.length; i++) {
+    var itemObj = dataArray[i];
+    var row = [];
+    for (var j = 0; j < headers.length; j++) {
+      var val = itemObj[headers[j]];
+      if (val === undefined) {
+        row.push("");
+      } else if (typeof val === "object") {
+        row.push(JSON.stringify(val));
+      } else {
+        row.push(val);
+      }
+    }
+    rows.push(row);
+  }
+  
+  if (rows.length > 0) {
+    sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
+  }
+}
+
+function updateOrderStatusInSheet(orderId, status) {
+  var sheet = getOrCreateSheet("Orders");
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  
+  if (lastRow < 2 || lastCol < 1) return;
+  
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var orderIdColIdx = headers.indexOf("id") + 1;
+  var statusColIdx = headers.indexOf("status") + 1;
+  
+  if (orderIdColIdx <= 0 || statusColIdx <= 0) return;
+  
+  var idValues = sheet.getRange(2, orderIdColIdx, lastRow - 1, 1).getValues();
+  for (var i = 0; i < idValues.length; i++) {
+    if (idValues[i][0] === orderId) {
+      var rowNum = i + 2; // 1-indexed header + index shift
+      sheet.getRange(rowNum, statusColIdx).setValue(status);
+      break;
+    }
+  }
+}
+
+function updatePaymentStatusInSheet(orderId, paymentStatus) {
+  var sheet = getOrCreateSheet("Orders");
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  
+  if (lastRow < 2 || lastCol < 1) return;
+  
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var orderIdColIdx = headers.indexOf("id") + 1;
+  var paymentStatusColIdx = headers.indexOf("paymentStatus") + 1;
+  
+  if (orderIdColIdx <= 0 || paymentStatusColIdx <= 0) return;
+  
+  var idValues = sheet.getRange(2, orderIdColIdx, lastRow - 1, 1).getValues();
+  for (var i = 0; i < idValues.length; i++) {
+    if (idValues[i][0] === orderId) {
+      var rowNum = i + 2; // 1-indexed header + index shift
+      sheet.getRange(rowNum, paymentStatusColIdx).setValue(paymentStatus);
+      break;
+    }
+  }
+}
+
