@@ -444,6 +444,16 @@
             <label class="form-label" for="settings-closed-msg">Custom Closed Message Notification</label>
             <textarea id="settings-closed-msg" class="form-control" rows="2"></textarea>
           </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="settings-order-retention">Completed Order Retention (Days)</label>
+              <input type="number" id="settings-order-retention" class="form-control" min="1" max="14">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="settings-max-completed-orders">Max Completed Orders in Live App</label>
+              <input type="number" id="settings-max-completed-orders" class="form-control" min="20" max="500">
+            </div>
+          </div>
 
           <h4 style="color: #fff; margin-top: var(--space-xl); margin-bottom: var(--space-md); border-bottom: 1px solid var(--color-border); padding-bottom: 8px;">
             Contact & Payments Setup
@@ -482,6 +492,62 @@
           <div class="form-group">
             <label class="form-label" for="settings-sheet-url">Google Apps Script Web App URL (Paste URL ending in /exec)</label>
             <input type="text" id="settings-sheet-url" class="form-control" placeholder="https://script.google.com/macros/s/.../exec">
+          </div>
+
+          <div class="form-group" style="margin-top: var(--space-md); border-top: 1px dashed var(--color-border); padding-top: var(--space-md);">
+            <label class="form-label" for="settings-supabase-toggle">Supabase Realtime Database Sync</label>
+            <label class="checkbox-label" style="margin-top: 10px;">
+              <input type="checkbox" id="settings-supabase-toggle" class="checkbox-custom">
+              <span>Enable Supabase realtime syncing</span>
+            </label>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="settings-supabase-url">Supabase Project URL</label>
+              <input type="text" id="settings-supabase-url" class="form-control" placeholder="https://your-project.supabase.co">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="settings-supabase-key">Supabase Anon Key</label>
+              <input type="password" id="settings-supabase-key" class="form-control" placeholder="eyJhbGciOi...">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Supabase SQL Setup Guide</label>
+            <pre class="form-control" style="white-space: pre-wrap; min-height: 220px; font-size: 0.72rem; line-height: 1.45; overflow: auto;">create table if not exists tfl_metadata (
+  key text primary key,
+  value jsonb not null,
+  updated_at timestamptz default now()
+);
+
+create table if not exists tfl_orders (
+  order_id text primary key,
+  order_data jsonb not null,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table tfl_metadata replica identity full;
+alter table tfl_orders replica identity full;
+
+alter publication supabase_realtime add table tfl_metadata;
+alter publication supabase_realtime add table tfl_orders;
+
+insert into storage.buckets (id, name, public)
+values ('product-images', 'product-images', true)
+on conflict (id) do nothing;
+
+create policy "Public product image read"
+on storage.objects for select
+using (bucket_id = 'product-images');
+
+create policy "Admin product image upload"
+on storage.objects for insert
+with check (bucket_id = 'product-images');
+
+create policy "Admin product image update"
+on storage.objects for update
+using (bucket_id = 'product-images')
+with check (bucket_id = 'product-images');</pre>
           </div>
           
           <div class="form-group" style="margin-top: var(--space-md); border-top: 1px dashed var(--color-border); padding-top: var(--space-md);">
@@ -707,6 +773,7 @@
   <div id="admin-modal-backdrop" class="backdrop" onclick="closeAllModals()"></div>
 
   <!-- Shared DB module and admin logic script -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="db.js"></script>
   <script src="admin.js"></script>
   

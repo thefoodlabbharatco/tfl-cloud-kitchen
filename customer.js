@@ -13,6 +13,7 @@ let currentReceiptOrder = null;
 document.addEventListener("DOMContentLoaded", async () => {
   // Initialize theme first
   TFL_DB.initTheme();
+  document.addEventListener("tfl_db_updated", handleDbUpdated);
 
   // 1. Set up elements from database configurations
   loadBrandCustomization();
@@ -20,7 +21,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 2. Perform background sync if enabled
   try {
     const settings = TFL_DB.getSettings();
-    if (settings.googleSheetEnabled && settings.googleSheetUrl) {
+    if (settings.supabaseEnabled && settings.supabaseUrl && settings.supabaseKey) {
+      console.log("Syncing menu with Supabase...");
+      await TFL_DB.syncFromSupabase();
+      loadBrandCustomization(); // Reload with synced details
+    } else if (settings.googleSheetEnabled && settings.googleSheetUrl) {
       console.log("Syncing menu with cloud...");
       await TFL_DB.syncFromGoogleSheets();
       loadBrandCustomization(); // Reload with synced details
@@ -50,6 +55,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch(e){}
   }
 });
+
+function handleDbUpdated(event) {
+  const key = event.detail && event.detail.key;
+  if (key === "settings" || key === "products" || key === "subbrands" || key === "updates" || key === "all") {
+    loadBrandCustomization();
+    renderApp();
+  }
+
+  if ((key === "orders" || key === "all") && currentReceiptOrder) {
+    const latestOrder = TFL_DB.getOrders().find(order => order.id === currentReceiptOrder.id);
+    if (latestOrder) {
+      currentReceiptOrder = latestOrder;
+      if (document.getElementById("receipt-modal").classList.contains("active")) {
+        openReceiptModal(latestOrder);
+      }
+      updateCartDisplay();
+      renderProducts();
+    }
+  }
+}
 
 // Load logo, hero, status, color settings
 function loadBrandCustomization() {
@@ -911,18 +936,15 @@ async function submitOrder(event) {
     lateNightFee: lateNight,
     grandTotal: grandTotal,
     status: "Pending", // Status defaults to Pending
-    orderDate: new Date().toLocaleString()
+    orderDate: new Date().toLocaleString(),
+    createdAt: new Date().toISOString()
   };
   
   // Save order to Local Database
   TFL_DB.addOrder(orderObj);
   
-  // Sync to Cloud Sheet if enabled (runs in background)
-  try {
-    await TFL_DB.addOrderToCloud(orderObj);
-  } catch (err) {
-    console.warn("Could not sync order to Google Sheets, saved locally.", err);
-  }
+  // Sync runs in the background so the customer gets an instant receipt.
+  TFL_DB.syncOrderInBackground(orderObj);
 
   currentReceiptOrder = orderObj;
   

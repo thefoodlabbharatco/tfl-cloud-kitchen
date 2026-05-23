@@ -5,10 +5,14 @@ let currentTab = 'dashboard';
 let currentOrderFilter = 'all';
 let loggedInUser = null;
 let currentKpiFilter = 'today';
+let knownOrderIds = new Set();
+let adminRefreshTimer = null;
 
 // Initialize Admin Portal
 document.addEventListener("DOMContentLoaded", () => {
   TFL_DB.initTheme();
+  knownOrderIds = new Set(TFL_DB.getOrders().map(order => order.id));
+  document.addEventListener("tfl_db_updated", handleDbUpdated);
   checkSession();
   
   // Connect input color pickers with text inputs for Customization
@@ -100,13 +104,69 @@ function restrictUI() {
     tabSettings.style.display = "none";
   }
   
-  // Check if Google Sheet Sync is enabled overall to show button
+  // Check if Google Sheet Sync or Supabase Sync is enabled overall to show button
   const settings = TFL_DB.getSettings();
   const forceSyncBtn = document.getElementById("btn-force-sync");
-  if (settings.googleSheetEnabled && role === "Owner") {
+  if ((settings.googleSheetEnabled || settings.supabaseEnabled) && role === "Owner") {
     forceSyncBtn.style.display = "inline-flex";
   } else {
     forceSyncBtn.style.display = "none";
+  }
+}
+
+function handleDbUpdated(event) {
+  const key = event.detail && event.detail.key;
+  if (key === "orders" || key === "all") {
+    notifyForNewOrders();
+  }
+  if (!loggedInUser) return;
+  clearTimeout(adminRefreshTimer);
+  adminRefreshTimer = setTimeout(() => {
+    renderTabContent(currentTab);
+    updateSyncStatusIndicator();
+  }, 120);
+}
+
+function notifyForNewOrders() {
+  const orders = TFL_DB.getOrders();
+  const newPendingOrders = orders.filter(order => {
+    return order && order.status === "Pending" && !knownOrderIds.has(order.id);
+  });
+  orders.forEach(order => {
+    if (order && order.id) knownOrderIds.add(order.id);
+  });
+  if (newPendingOrders.length > 0 && loggedInUser) {
+    playNewOrderChime();
+    TFL_DB.showToast(`New order received: ${newPendingOrders[0].id}`, "success");
+  }
+}
+
+function playNewOrderChime() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const now = ctx.currentTime;
+    const notes = [
+      { freq: 740, start: 0, duration: 0.12 },
+      { freq: 988, start: 0.14, duration: 0.18 }
+    ];
+
+    notes.forEach(note => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(note.freq, now + note.start);
+      gain.gain.setValueAtTime(0.0001, now + note.start);
+      gain.gain.exponentialRampToValueAtTime(0.18, now + note.start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + note.start + note.duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + note.start);
+      osc.stop(now + note.start + note.duration + 0.03);
+    });
+  } catch (e) {
+    console.warn("New order chime failed.", e);
   }
 }
 
@@ -516,6 +576,8 @@ async function updateOrderStatus(orderId, newStatus) {
     const order = orders[index];
     order.status = newStatus;
     TFL_DB.saveOrders(orders);
+    renderOrdersTable();
+    renderDashboard();
     
     // Trigger WhatsApp status update message redirect
     sendWhatsAppStatusUpdate(order, newStatus);
@@ -527,9 +589,6 @@ async function updateOrderStatus(orderId, newStatus) {
     } catch(e) {
       console.warn("Could not sync order status change to Google Sheets.", e);
     }
-    
-    // Refresh display
-    renderOrdersTable();
   }
 }
 
@@ -542,6 +601,8 @@ async function updatePaymentStatus(orderId, newPaymentStatus) {
     const order = orders[index];
     order.paymentStatus = newPaymentStatus;
     TFL_DB.saveOrders(orders);
+    renderOrdersTable();
+    renderDashboard();
     
     // Trigger WhatsApp payment status update message redirect
     sendWhatsAppPaymentStatusUpdate(order, newPaymentStatus);
@@ -553,22 +614,29 @@ async function updatePaymentStatus(orderId, newPaymentStatus) {
     } catch(e) {
       console.warn("Could not sync order payment status change to Google Sheets.", e);
     }
-    
-    // Refresh display
-    renderOrdersTable();
   }
 }
 
 // Clear all Delivered/Cancelled orders to release local cache storage
-function clearDeliveredOrders() {
-  if (confirm("Are you sure you want to clear all Delivered and Cancelled orders from local database? This does not delete them from Google Sheets.")) {
+async function clearDeliveredOrders() {
+  if (confirm("Clear all Delivered and Cancelled orders from the live dashboard? Export CSV first if you need records for the day.")) {
     const orders = TFL_DB.getOrders();
     const activeOrders = orders.filter(o => o.status !== "Delivered" && o.status !== "Cancelled");
+    const clearedOrders = orders.filter(o => o.status === "Delivered" || o.status === "Cancelled");
     TFL_DB.saveOrders(activeOrders);
-    
-    // Save to Google Sheet sync to reflect deletion? Owner might want to keep archival records in Sheets,
-    // so we only modify the local display cache to keep it fast.
     renderOrdersTable();
+    renderDashboard();
+
+    const settings = TFL_DB.getSettings();
+    if (settings.supabaseEnabled) {
+      try {
+        await Promise.all(clearedOrders.map(order => TFL_DB.deleteOrderFromCloud(order.id)));
+        TFL_DB.showToast("Completed orders cleared from live Supabase data.", "success");
+      } catch (e) {
+        console.warn("Could not clear every completed order from Supabase.", e);
+        TFL_DB.showToast("Some completed orders may still exist in Supabase.", "warning");
+      }
+    }
   }
 }
 
@@ -582,6 +650,17 @@ async function deleteOrder(orderId) {
     // Refresh UI
     renderOrdersTable();
     renderDashboard();
+
+    const settings = TFL_DB.getSettings();
+    if (settings.supabaseEnabled) {
+      try {
+        await TFL_DB.deleteOrderFromCloud(orderId);
+        TFL_DB.showToast("Order deleted from Supabase.", "success");
+      } catch (err) {
+        console.error("Failed to delete order from Supabase:", err);
+        TFL_DB.showToast("Order deleted locally, but Supabase delete failed.", "warning");
+      }
+    }
     
     // Sync to Google Sheets if enabled
     await triggerBackgroundSync();
@@ -1487,6 +1566,8 @@ function renderSettingsForm() {
   document.getElementById("settings-late-night-toggle").checked = settings.lateNightFeeEnabled;
   document.getElementById("settings-late-night-amount").value = settings.lateNightFeeAmount;
   document.getElementById("settings-closed-msg").value = settings.closedMessage || "";
+  document.getElementById("settings-order-retention").value = settings.orderRetentionDays || 2;
+  document.getElementById("settings-max-completed-orders").value = settings.maxCompletedOrders || 100;
   
   document.getElementById("settings-wa-orders").value = settings.whatsappNumber;
   document.getElementById("settings-wa-support").value = settings.supportNumber;
@@ -1496,6 +1577,9 @@ function renderSettingsForm() {
   
   document.getElementById("settings-sheet-toggle").checked = settings.googleSheetEnabled;
   document.getElementById("settings-sheet-url").value = settings.googleSheetUrl || "";
+  document.getElementById("settings-supabase-toggle").checked = settings.supabaseEnabled || false;
+  document.getElementById("settings-supabase-url").value = settings.supabaseUrl || "";
+  document.getElementById("settings-supabase-key").value = settings.supabaseKey || "";
   document.getElementById("settings-gform-link").value = settings.googleFormLink || "";
 }
 
@@ -1508,6 +1592,8 @@ async function saveSettings(event) {
   settings.lateNightFeeEnabled = document.getElementById("settings-late-night-toggle").checked;
   settings.lateNightFeeAmount = parseFloat(document.getElementById("settings-late-night-amount").value) || 0;
   settings.closedMessage = document.getElementById("settings-closed-msg").value.trim();
+  settings.orderRetentionDays = parseInt(document.getElementById("settings-order-retention").value, 10) || 2;
+  settings.maxCompletedOrders = parseInt(document.getElementById("settings-max-completed-orders").value, 10) || 100;
   
   settings.whatsappNumber = document.getElementById("settings-wa-orders").value.trim();
   settings.supportNumber = document.getElementById("settings-wa-support").value.trim();
@@ -1517,9 +1603,13 @@ async function saveSettings(event) {
   
   settings.googleSheetEnabled = document.getElementById("settings-sheet-toggle").checked;
   settings.googleSheetUrl = document.getElementById("settings-sheet-url").value.trim();
+  settings.supabaseEnabled = document.getElementById("settings-supabase-toggle").checked;
+  settings.supabaseUrl = document.getElementById("settings-supabase-url").value.trim();
+  settings.supabaseKey = document.getElementById("settings-supabase-key").value.trim();
   settings.googleFormLink = document.getElementById("settings-gform-link").value.trim();
   
   TFL_DB.saveSettings(settings);
+  TFL_DB.saveOrders(TFL_DB.getOrders());
   restrictUI(); // Reload UI to show/hide Sync buttons based on settings
   updateSyncStatusIndicator();
   TFL_DB.showToast("Operational system settings successfully configured!", "success");
@@ -1541,9 +1631,15 @@ function updateSyncStatusIndicator() {
   
   if (!banner) return;
   
-  if (settings.googleSheetEnabled && settings.googleSheetUrl) {
+  if (settings.supabaseEnabled && settings.supabaseUrl && settings.supabaseKey) {
     banner.style.display = "inline-flex";
     banner.className = "badge sync-banner synced";
+    banner.style.backgroundColor = "#24b47e";
+    banner.innerHTML = `<i data-lucide="database" style="width: 12px; height: 12px; margin-right: 4px;"></i> Supabase Sync Enabled`;
+  } else if (settings.googleSheetEnabled && settings.googleSheetUrl) {
+    banner.style.display = "inline-flex";
+    banner.className = "badge sync-banner synced";
+    banner.style.removeProperty("background-color");
     banner.innerHTML = `<i data-lucide="cloud" style="width: 12px; height: 12px; margin-right: 4px;"></i> Cloud DB Sync Enabled`;
   } else {
     banner.style.display = "none";
@@ -1559,17 +1655,23 @@ async function syncCloudDB() {
   button.innerHTML = `<i data-lucide="loader-2" class="anim-spin" style="width: 14px; height: 14px;"></i> Syncing...`;
   lucide.createIcons();
   
+  const settings = TFL_DB.getSettings();
   try {
-    // 1. Force push current local database configurations
-    await TFL_DB.syncToGoogleSheets();
-    
-    // 2. Fetch any new additions (e.g. orders placed by customers)
-    await TFL_DB.syncFromGoogleSheets();
-    
-    TFL_DB.showToast("Database sync completed!", "success");
+    if (settings.supabaseEnabled) {
+      await TFL_DB.syncToSupabase();
+      await TFL_DB.syncFromSupabase();
+      TFL_DB.showToast("Supabase database sync completed!", "success");
+    } else {
+      await TFL_DB.syncToGoogleSheets();
+      await TFL_DB.syncFromGoogleSheets();
+      TFL_DB.showToast("Database sync completed!", "success");
+    }
     renderTabContent(currentTab);
   } catch (err) {
-    TFL_DB.showToast("Sync failed: Check your Google Apps Script URL configuration and permissions.", "error");
+    const message = settings.supabaseEnabled
+      ? "Sync failed: Check Supabase URL, anon key, and SQL setup."
+      : "Sync failed: Check your Google Apps Script URL configuration and permissions.";
+    TFL_DB.showToast(message, "error");
     console.error(err);
   } finally {
     button.disabled = false;
@@ -1581,7 +1683,14 @@ async function syncCloudDB() {
 // Trigger background updates silently without blocking UI
 async function triggerBackgroundSync() {
   const settings = TFL_DB.getSettings();
-  if (settings.googleSheetEnabled && settings.googleSheetUrl) {
+  if (settings.supabaseEnabled && settings.supabaseUrl && settings.supabaseKey) {
+    try {
+      await TFL_DB.syncToSupabase();
+      TFL_DB.showToast("Supabase database updated.", "success");
+    } catch(e) {
+      console.warn("Background Supabase auto-sync failed.", e);
+    }
+  } else if (settings.googleSheetEnabled && settings.googleSheetUrl) {
     try {
       await TFL_DB.syncToGoogleSheets();
       TFL_DB.showToast("Cloud database updated.", "success");
@@ -1671,7 +1780,24 @@ async function handleProductImageUpload(input) {
 
     const settings = TFL_DB.getSettings();
 
-    if (settings.googleSheetEnabled && settings.googleSheetUrl) {
+    if (settings.supabaseEnabled && settings.supabaseUrl && settings.supabaseKey) {
+      statusDiv.innerText = "Uploading to Supabase Storage...";
+      try {
+        const result = await TFL_DB.uploadImageToCloud(fileName, mimeType, base64Data);
+        if (result.status === "success" && result.imageUrl) {
+          document.getElementById("p-image").value = result.imageUrl;
+          statusDiv.style.color = "var(--color-success)";
+          statusDiv.innerText = "Successfully uploaded to Supabase product-images bucket!";
+        } else {
+          throw new Error(result.message || "Unknown error from Supabase upload");
+        }
+      } catch (err) {
+        console.error(err);
+        statusDiv.style.color = "var(--color-danger)";
+        statusDiv.innerText = "Supabase upload failed. Saving compressed Base64 locally.";
+        document.getElementById("p-image").value = base64DataWithHeader;
+      }
+    } else if (settings.googleSheetEnabled && settings.googleSheetUrl) {
       statusDiv.innerText = "Uploading to Google Drive...";
       try {
         const result = await TFL_DB.uploadImageToCloud(fileName, mimeType, base64Data);
@@ -1691,7 +1817,7 @@ async function handleProductImageUpload(input) {
     } else {
       document.getElementById("p-image").value = base64DataWithHeader;
       statusDiv.style.color = "var(--color-success)";
-      statusDiv.innerText = "Google Sheets disabled. Compressed image saved locally as Base64.";
+      statusDiv.innerText = "Cloud sync disabled. Compressed image saved locally as Base64.";
     }
   } catch (err) {
     console.error(err);
