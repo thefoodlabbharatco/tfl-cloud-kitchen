@@ -1,6 +1,7 @@
-const CACHE_NAME = 'tfl-cache-v6';
+const CACHE_NAME = 'tfl-cache-v7';
 const ASSETS_TO_CACHE = [
   './',
+  './admin',
   './index.html',
   './admin.html',
   './style.css',
@@ -12,7 +13,8 @@ const ASSETS_TO_CACHE = [
   './manifest.json',
   './tfl_logo.png',
   './tfl_hero.png',
-  'https://unpkg.com/lucide@latest'
+  'https://unpkg.com/lucide@latest',
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
 ];
 
 self.addEventListener('install', (event) => {

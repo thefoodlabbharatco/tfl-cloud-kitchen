@@ -23,28 +23,12 @@ async function initCustomerPage() {
 
   // 1. Set up elements from database configurations
   loadBrandCustomization();
-  
-  // 2. Perform background sync if enabled
-  try {
-    const settings = TFL_DB.getSettings();
-    if (settings.supabaseEnabled && settings.supabaseUrl && settings.supabaseKey) {
-      console.log("Syncing menu with Supabase...");
-      await TFL_DB.syncFromSupabase();
-      loadBrandCustomization(); // Reload with synced details
-    } else if (settings.googleSheetEnabled && settings.googleSheetUrl) {
-      console.log("Syncing menu with cloud...");
-      await TFL_DB.syncFromGoogleSheets();
-      loadBrandCustomization(); // Reload with synced details
-    }
-  } catch (e) {
-    console.warn("Background sync failed. Running on local cache.", e);
-  }
 
-  // 3. Render content
+  // 2. Render immediately. Cloud sync refreshes the page in the background.
   renderApp();
   resetCheckoutForm();
 
-  // 4. Set up search input listener
+  // 3. Set up search input listener
   const searchInput = document.getElementById("menu-search-input");
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
@@ -60,6 +44,27 @@ async function initCustomerPage() {
       cart = JSON.parse(savedCart);
       updateCartDisplay();
     } catch(e){}
+  }
+
+  syncCustomerCloudData();
+}
+
+async function syncCustomerCloudData() {
+  try {
+    const settings = TFL_DB.getSettings();
+    if (settings.supabaseEnabled && settings.supabaseUrl && settings.supabaseKey) {
+      console.log("Syncing menu with Supabase...");
+      await TFL_DB.syncFromSupabase();
+      loadBrandCustomization();
+      renderApp();
+    } else if (settings.googleSheetEnabled && settings.googleSheetUrl) {
+      console.log("Syncing menu with cloud...");
+      await TFL_DB.syncFromGoogleSheets();
+      loadBrandCustomization();
+      renderApp();
+    }
+  } catch (e) {
+    console.warn("Background sync failed. Running on local cache.", e);
   }
 }
 
