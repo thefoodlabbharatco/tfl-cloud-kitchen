@@ -1234,3 +1234,60 @@ body:not(.light-theme) .btn-secondary:hover {
   background: #27272a;
   border-color: #52525b;
 }
+
+/* Settings forms need stronger overrides because the light dashboard cards use !important. */
+body:not(.light-theme) #section-settings .glass-panel,
+body:not(.light-theme) #settings-management-form {
+  background: #151518 !important;
+  border-color: #2a2a31 !important;
+  color: #f7f7f8 !important;
+}
+
+body:not(.light-theme) #section-settings .form-row,
+body:not(.light-theme) #section-settings .form-group {
+  color: #f7f7f8 !important;
+}
+
+body:not(.light-theme) #section-settings h4,
+body:not(.light-theme) #section-settings .form-label,
+body:not(.light-theme) #section-settings .checkbox-label,
+body:not(.light-theme) #section-settings .checkbox-label span {
+  color: #f7f7f8 !important;
+}
+
+body:not(.light-theme) #section-settings .form-label {
+  color: #d4d4d8 !important;
+}
+
+body:not(.light-theme) #section-settings .form-control,
+body:not(.light-theme) #section-settings input.form-control,
+body:not(.light-theme) #section-settings textarea.form-control,
+body:not(.light-theme) #section-settings pre.form-control {
+  background: #0f0f12 !important;
+  border-color: #3f3f46 !important;
+  color: #f8fafc !important;
+  box-shadow: none !important;
+  color-scheme: dark;
+}
+
+body:not(.light-theme) #section-settings .form-control::placeholder {
+  color: #71717a !important;
+}
+
+body:not(.light-theme) #section-settings .form-control:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18) !important;
+}
+
+body:not(.light-theme) #section-settings .checkbox-custom {
+  background: #0f0f12 !important;
+  border-color: #52525b !important;
+}
+
+body:not(.light-theme) #section-settings input:-webkit-autofill,
+body:not(.light-theme) #section-settings input:-webkit-autofill:hover,
+body:not(.light-theme) #section-settings input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f8fafc !important;
+  box-shadow: 0 0 0 1000px #0f0f12 inset !important;
+  caret-color: #f8fafc;
+}
