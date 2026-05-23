@@ -9,11 +9,12 @@ let knownOrderIds = new Set();
 let adminRefreshTimer = null;
 
 // Initialize Admin Portal
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   TFL_DB.initTheme();
   knownOrderIds = new Set(TFL_DB.getOrders().map(order => order.id));
   document.addEventListener("tfl_db_updated", handleDbUpdated);
   checkSession();
+  await loadAdminCloudData();
   
   // Connect input color pickers with text inputs for Customization
   const primaryColorPicker = document.getElementById("cust-primary-color");
@@ -34,6 +35,23 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+async function loadAdminCloudData() {
+  const settings = TFL_DB.getSettings();
+  if (!settings.supabaseEnabled || !settings.supabaseUrl || !settings.supabaseKey) return;
+
+  try {
+    await TFL_DB.syncFromSupabase();
+    knownOrderIds = new Set(TFL_DB.getOrders().map(order => order.id));
+    if (loggedInUser) {
+      restrictUI();
+      updateSyncStatusIndicator();
+      renderTabContent(currentTab);
+    }
+  } catch (e) {
+    console.warn("Initial admin Supabase sync failed.", e);
+  }
+}
 
 // Check Session & Auth Status
 function checkSession() {
