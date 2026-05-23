@@ -36,6 +36,7 @@
             <button id="theme-toggle" class="theme-toggle-btn" onclick="TFL_DB.toggleTheme()" aria-label="Toggle Theme">
               <!-- Rendered dynamically by JS -->
             </button>
+            <span id="customer-sync-status" class="customer-sync-status" aria-live="polite">Ready</span>
             <span id="kitchen-status-badge" class="status-badge status-open">Open</span>
           </div>
         </div>
@@ -301,6 +302,7 @@
 
   <!-- Shared DB module and customer script -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="runtime-config.js"></script>
   <script src="db.js"></script>
   <script src="customer.js"></script>
   

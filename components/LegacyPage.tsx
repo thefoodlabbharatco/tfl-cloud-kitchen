@@ -33,6 +33,7 @@ export default function LegacyPage({ title, description, bodyHtml, pageScript, b
       loadScript("https://unpkg.com/lucide@latest"),
       loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2")
     ])
+      .then(() => loadScript(assetPath(basePath, "runtime-config.js")))
       .then(() => loadScript(assetPath(basePath, "db.js")))
       .then(() => loadScript(assetPath(basePath, pageScript)))
       .catch((err) => console.error("Legacy script loading failed:", err));
@@ -64,11 +65,12 @@ export default function LegacyPage({ title, description, bodyHtml, pageScript, b
         <meta name="theme-color" content="#ff6b00" />
         <link rel="preconnect" href="https://unpkg.com" />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" />
-        <link rel="preconnect" href="https://napbxlmhmbelwuxxbnyq.supabase.co" />
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL || "https://napbxlmhmbelwuxxbnyq.supabase.co"} />
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
         <link rel="manifest" href={assetPath(basePath, "manifest.json")} />
         <link rel="preload" as="image" href={assetPath(basePath, "tfl_hero.png")} />
         <link rel="preload" as="image" href={assetPath(basePath, "tfl_logo.png")} />
+        <link rel="preload" as="script" href={assetPath(basePath, "runtime-config.js")} />
         <link rel="preload" as="script" href={assetPath(basePath, "db.js")} />
         <link rel="preload" as="script" href={assetPath(basePath, pageScript)} />
         <link rel="stylesheet" href={assetPath(basePath, "style.css")} />

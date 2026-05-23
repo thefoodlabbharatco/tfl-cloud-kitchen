@@ -2,6 +2,8 @@ _recovery_backup/
 .DS_Store
 Thumbs.db
 *.log
+.env
+.env*.local
 node_modules/
 .next/
 out/

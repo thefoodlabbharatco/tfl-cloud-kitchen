@@ -1673,15 +1673,30 @@ function closeAllModals() {
 // --- SYNC SERVICES ---
 function updateSyncStatusIndicator() {
   const settings = TFL_DB.getSettings();
+  const syncState = TFL_DB.getSyncState ? TFL_DB.getSyncState() : { pending: 0, syncing: false, lastError: null, online: true };
   const banner = document.getElementById("db-sync-status-banner");
   
   if (!banner) return;
   
   if (settings.supabaseEnabled && settings.supabaseUrl && settings.supabaseKey) {
     banner.style.display = "inline-flex";
-    banner.className = "badge sync-banner synced";
-    banner.style.backgroundColor = "#24b47e";
-    banner.innerHTML = `<i data-lucide="database" style="width: 12px; height: 12px; margin-right: 4px;"></i> Supabase Sync Enabled`;
+    banner.style.removeProperty("background-color");
+    if (!syncState.online) {
+      banner.className = "badge sync-banner unsynced";
+      banner.innerHTML = `<i data-lucide="wifi-off" style="width: 12px; height: 12px; margin-right: 4px;"></i> Offline`;
+    } else if (syncState.syncing) {
+      banner.className = "badge sync-banner";
+      banner.innerHTML = `<i data-lucide="loader-2" class="anim-spin" style="width: 12px; height: 12px; margin-right: 4px;"></i> Syncing`;
+    } else if (syncState.pending > 0) {
+      banner.className = "badge sync-banner unsynced";
+      banner.innerHTML = `<i data-lucide="cloud-upload" style="width: 12px; height: 12px; margin-right: 4px;"></i> ${syncState.pending} Pending`;
+    } else if (syncState.lastError) {
+      banner.className = "badge sync-banner unsynced";
+      banner.innerHTML = `<i data-lucide="alert-triangle" style="width: 12px; height: 12px; margin-right: 4px;"></i> Retry Ready`;
+    } else {
+      banner.className = "badge sync-banner synced";
+      banner.innerHTML = `<i data-lucide="database" style="width: 12px; height: 12px; margin-right: 4px;"></i> Supabase Synced`;
+    }
   } else if (settings.googleSheetEnabled && settings.googleSheetUrl) {
     banner.style.display = "inline-flex";
     banner.className = "badge sync-banner synced";

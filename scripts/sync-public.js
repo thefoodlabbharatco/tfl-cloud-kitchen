@@ -18,6 +18,18 @@ const files = [
 
 fs.mkdirSync(publicDir, { recursive: true });
 
+const runtimeConfig = {
+  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || "https://napbxlmhmbelwuxxbnyq.supabase.co",
+  supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_k6ofEjNmElPKjRChvdN6Pg_4hwUgM-E",
+  lockSupabaseConfig: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+};
+
+fs.writeFileSync(
+  path.join(publicDir, "runtime-config.js"),
+  `window.TFL_CONFIG = ${JSON.stringify(runtimeConfig, null, 2)};\n`,
+  "utf8"
+);
+
 files.forEach((file) => {
   fs.copyFileSync(path.join(root, file), path.join(publicDir, file));
 });

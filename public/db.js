@@ -1,5 +1,7 @@
 // db.js - Shared Local Database & Google Sheets Sync Module for The Food Lab (TFL)
 
+const TFL_RUNTIME_CONFIG = typeof window !== "undefined" && window.TFL_CONFIG ? window.TFL_CONFIG : {};
+
 const DEFAULT_SETTINGS = {
   restaurantName: "The Food Lab",
   tagline: "Lab Tested Deliciousness",
@@ -23,8 +25,8 @@ const DEFAULT_SETTINGS = {
   googleSheetUrl: "", // Paste your Apps Script URL here to enable cloud sync
   googleSheetEnabled: false,
   supabaseEnabled: true,
-  supabaseUrl: "https://napbxlmhmbelwuxxbnyq.supabase.co",
-  supabaseKey: "sb_publishable_k6ofEjNmElPKjRChvdN6Pg_4hwUgM-E",
+  supabaseUrl: TFL_RUNTIME_CONFIG.supabaseUrl || "https://napbxlmhmbelwuxxbnyq.supabase.co",
+  supabaseKey: TFL_RUNTIME_CONFIG.supabaseKey || "sb_publishable_k6ofEjNmElPKjRChvdN6Pg_4hwUgM-E",
   orderRetentionDays: 2,
   maxCompletedOrders: 100
 };
@@ -208,6 +210,27 @@ const TFL_DB = {
   _supabaseClient: null,
   _tabId: `tab_${Date.now()}_${Math.random().toString(36).slice(2)}`,
   _isFlushingOrders: false,
+  _syncState: {
+    pending: 0,
+    syncing: false,
+    lastSyncedAt: null,
+    lastError: null,
+    online: typeof navigator === "undefined" ? true : navigator.onLine !== false
+  },
+
+  getRuntimeConfig() {
+    return typeof window !== "undefined" && window.TFL_CONFIG ? window.TFL_CONFIG : {};
+  },
+
+  applyRuntimeConfig(settings) {
+    const runtime = this.getRuntimeConfig();
+    const merged = { ...settings };
+    if (runtime.lockSupabaseConfig && runtime.supabaseUrl) merged.supabaseUrl = runtime.supabaseUrl;
+    if (runtime.lockSupabaseConfig && runtime.supabaseKey) merged.supabaseKey = runtime.supabaseKey;
+    if (merged.supabaseUrl) merged.supabaseUrl = this.normalizeSupabaseUrl(merged.supabaseUrl);
+    if (merged.supabaseKey) merged.supabaseKey = String(merged.supabaseKey).trim();
+    return merged;
+  },
 
   // Safe helper to parse local storage with in-memory caching
   getLocal(key, fallback) {
@@ -295,6 +318,23 @@ const TFL_DB = {
     }));
   },
 
+  updateSyncState(patch) {
+    this._syncState = {
+      ...this._syncState,
+      ...patch,
+      online: typeof navigator === "undefined" ? true : navigator.onLine !== false
+    };
+    this.dispatchDbUpdated("sync_status", "local", this.getSyncState());
+  },
+
+  getSyncState() {
+    return {
+      ...this._syncState,
+      pending: this.getPendingCloudOrders ? this.getPendingCloudOrders().length : this._syncState.pending,
+      online: typeof navigator === "undefined" ? true : navigator.onLine !== false
+    };
+  },
+
   initBroadcastChannel() {
     if (typeof BroadcastChannel === "undefined" || this._broadcastChannel) return;
     try {
@@ -376,7 +416,13 @@ const TFL_DB = {
     this._cache = {};
     this.initBroadcastChannel();
     if (typeof window !== "undefined") {
-      window.addEventListener("online", () => this.flushPendingCloudOrders());
+      window.addEventListener("online", () => {
+        this.updateSyncState({ online: true, lastError: null });
+        this.flushPendingCloudOrders();
+      });
+      window.addEventListener("offline", () => {
+        this.updateSyncState({ online: false, syncing: false, lastError: "offline" });
+      });
     }
     if (!localStorage.getItem("tfl_settings")) this.setLocal("settings", DEFAULT_SETTINGS);
     if (!localStorage.getItem("tfl_subbrands")) this.setLocal("subbrands", DEFAULT_SUBBRANDS);
@@ -400,10 +446,10 @@ const TFL_DB = {
 
   getSettings() { 
     const settings = this.getLocal("settings", DEFAULT_SETTINGS);
-    return { ...DEFAULT_SETTINGS, ...settings };
+    return this.applyRuntimeConfig({ ...DEFAULT_SETTINGS, ...settings });
   },
   saveSettings(settings) { 
-    this.setLocal("settings", settings); 
+    this.setLocal("settings", this.applyRuntimeConfig(settings)); 
     this.applyThemeColors();
     this.initRealtimeSubscription();
   },
@@ -596,40 +642,47 @@ const TFL_DB = {
     if (!client) {
       return Promise.reject("Supabase Sync is not enabled or credentials are missing.");
     }
+    this.updateSyncState({ syncing: true, lastError: null });
 
-    const { data: metadata, error: metadataError } = await client
-      .from("tfl_metadata")
-      .select("key,value");
-    if (metadataError) throw metadataError;
+    try {
+      const { data: metadata, error: metadataError } = await client
+        .from("tfl_metadata")
+        .select("key,value");
+      if (metadataError) throw metadataError;
 
-    const localSettings = this.getSettings();
-    (metadata || []).forEach(row => {
-      if (!row || !row.key) return;
-      if (row.key === "settings") {
-        this.setLocal("settings", {
-          ...row.value,
-          supabaseEnabled: true,
-          supabaseUrl: localSettings.supabaseUrl,
-          supabaseKey: localSettings.supabaseKey
-        });
-      } else {
-        this.setLocal(row.key, row.value);
+      const localSettings = this.getSettings();
+      (metadata || []).forEach(row => {
+        if (!row || !row.key) return;
+        if (row.key === "settings") {
+          this.setLocal("settings", this.applyRuntimeConfig({
+            ...row.value,
+            supabaseEnabled: true,
+            supabaseUrl: localSettings.supabaseUrl,
+            supabaseKey: localSettings.supabaseKey
+          }));
+        } else {
+          this.setLocal(row.key, row.value);
+        }
+      });
+
+      const { data: orderRows, error: ordersError } = await client
+        .from("tfl_orders")
+        .select("order_data,created_at")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (ordersError) throw ordersError;
+
+      if (orderRows) {
+        this.setLocal("orders", orderRows.map(row => row.order_data).filter(Boolean));
       }
-    });
 
-    const { data: orderRows, error: ordersError } = await client
-      .from("tfl_orders")
-      .select("order_data,created_at")
-      .order("created_at", { ascending: false })
-      .limit(200);
-    if (ordersError) throw ordersError;
-
-    if (orderRows) {
-      this.setLocal("orders", orderRows.map(row => row.order_data).filter(Boolean));
+      this.applyThemeColors();
+      this.updateSyncState({ syncing: false, lastSyncedAt: new Date().toISOString(), lastError: null });
+      return { status: "success" };
+    } catch (error) {
+      this.updateSyncState({ syncing: false, lastError: error.message || "sync_failed" });
+      throw error;
     }
-
-    this.applyThemeColors();
-    return { status: "success" };
   },
 
   async syncToSupabase() {
@@ -637,31 +690,38 @@ const TFL_DB = {
     if (!client) {
       return Promise.reject("Supabase Sync is not enabled or credentials are missing.");
     }
+    this.updateSyncState({ syncing: true, lastError: null });
 
-    const metadataRows = ["settings", "products", "subbrands", "updates", "admins"].map(key => ({
-      key,
-      value: key === "settings" ? this.getSettings() : this.getLocal(key, [])
-    }));
+    try {
+      const metadataRows = ["settings", "products", "subbrands", "updates", "admins"].map(key => ({
+        key,
+        value: key === "settings" ? this.getSettings() : this.getLocal(key, [])
+      }));
 
-    const { error: metadataError } = await client
-      .from("tfl_metadata")
-      .upsert(metadataRows, { onConflict: "key" });
-    if (metadataError) throw metadataError;
+      const { error: metadataError } = await client
+        .from("tfl_metadata")
+        .upsert(metadataRows, { onConflict: "key" });
+      if (metadataError) throw metadataError;
 
-    const orderRows = this.getOrders().map(order => ({
-      order_id: order.id,
-      order_data: order,
-      created_at: this.getOrderTimestamp(order)
-    }));
+      const orderRows = this.getOrders().map(order => ({
+        order_id: order.id,
+        order_data: order,
+        created_at: this.getOrderTimestamp(order)
+      }));
 
-    if (orderRows.length > 0) {
-      const { error: ordersError } = await client
-        .from("tfl_orders")
-        .upsert(orderRows, { onConflict: "order_id" });
-      if (ordersError) throw ordersError;
+      if (orderRows.length > 0) {
+        const { error: ordersError } = await client
+          .from("tfl_orders")
+          .upsert(orderRows, { onConflict: "order_id" });
+        if (ordersError) throw ordersError;
+      }
+
+      this.updateSyncState({ syncing: false, lastSyncedAt: new Date().toISOString(), lastError: null });
+      return { status: "success", message: "Data pushed to Supabase" };
+    } catch (error) {
+      this.updateSyncState({ syncing: false, lastError: error.message || "sync_failed" });
+      throw error;
     }
-
-    return { status: "success", message: "Data pushed to Supabase" };
   },
 
   async upsertOrderToSupabase(order) {
@@ -700,7 +760,7 @@ const TFL_DB = {
 
   savePendingCloudOrders(orders) {
     localStorage.setItem("tfl_pending_cloud_orders", JSON.stringify(orders));
-    this.dispatchDbUpdated("sync_status", "local", { pending: orders.length });
+    this.updateSyncState({ pending: orders.length });
   },
 
   queuePendingCloudOrder(order) {
@@ -724,7 +784,7 @@ const TFL_DB = {
     if (pending.length === 0) return;
 
     this._isFlushingOrders = true;
-    this.dispatchDbUpdated("sync_status", "local", { pending: pending.length, syncing: true });
+    this.updateSyncState({ pending: pending.length, syncing: true, lastError: null });
     const remaining = [];
     for (const order of pending) {
       try {
@@ -736,6 +796,12 @@ const TFL_DB = {
     }
     this.savePendingCloudOrders(remaining);
     this._isFlushingOrders = false;
+    this.updateSyncState({
+      pending: remaining.length,
+      syncing: false,
+      lastSyncedAt: remaining.length === 0 ? new Date().toISOString() : this._syncState.lastSyncedAt,
+      lastError: remaining.length === 0 ? null : "retry_pending"
+    });
   },
 
   async deleteOrderFromCloud(orderId) {

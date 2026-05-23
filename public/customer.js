@@ -91,6 +91,9 @@ async function syncCustomerCloudData() {
 
 function handleDbUpdated(event) {
   const key = event.detail && event.detail.key;
+  if (key === "sync_status") {
+    updateCustomerSyncStatus();
+  }
   if (key === "settings" || key === "products" || key === "subbrands" || key === "updates" || key === "all") {
     loadBrandCustomization();
     renderApp();
@@ -106,6 +109,29 @@ function handleDbUpdated(event) {
       updateCartDisplay();
       renderProducts();
     }
+  }
+}
+
+function updateCustomerSyncStatus() {
+  const el = document.getElementById("customer-sync-status");
+  if (!el || !TFL_DB.getSyncState) return;
+  const state = TFL_DB.getSyncState();
+  el.className = "customer-sync-status";
+  if (!state.online) {
+    el.classList.add("is-warning");
+    el.innerText = "Offline";
+  } else if (state.syncing) {
+    el.classList.add("is-syncing");
+    el.innerText = "Syncing";
+  } else if (state.pending > 0) {
+    el.classList.add("is-warning");
+    el.innerText = "Saving";
+  } else if (state.lastError) {
+    el.classList.add("is-warning");
+    el.innerText = "Retrying";
+  } else {
+    el.classList.add("is-synced");
+    el.innerText = "Live";
   }
 }
 
@@ -151,6 +177,7 @@ function loadBrandCustomization() {
   }
 
   refreshCheckoutUpiDetails(settings);
+  updateCustomerSyncStatus();
   
   // Apply theme styling colors
   TFL_DB.applyThemeColors();

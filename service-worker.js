@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tfl-cache-v17';
+const CACHE_NAME = 'tfl-cache-v18';
 const ASSETS_TO_CACHE = [
   './',
   './admin',
@@ -8,6 +8,7 @@ const ASSETS_TO_CACHE = [
   './customer.css',
   './admin.css',
   './db.js',
+  './runtime-config.js',
   './customer.js',
   './admin.js',
   './manifest.json',
