@@ -24,6 +24,10 @@ if (document.readyState === "loading") {
 }
 
 async function initAdminPage() {
+  if (!localStorage.getItem("tfl_theme")) {
+    localStorage.setItem("tfl_theme", "light");
+  }
+
   TFL_DB.initTheme();
   knownOrderIds = new Set(TFL_DB.getOrders().map(order => order.id));
   document.addEventListener("tfl_db_updated", handleDbUpdated);
