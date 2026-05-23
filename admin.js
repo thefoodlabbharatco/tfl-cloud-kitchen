@@ -311,27 +311,25 @@ function renderDashboard() {
   
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   
-  // Check if order date is within the current range
-  const isInPeriod = (orderDateStr) => {
-    try {
-      const oDate = new Date(orderDateStr);
-      if (isNaN(oDate.getTime())) return false;
-      
-      if (currentKpiFilter === 'today') {
-        return oDate >= startOfToday;
-      } else if (currentKpiFilter === 'week') {
-        return oDate >= startOfWeek;
-      } else if (currentKpiFilter === 'month') {
-        return oDate >= startOfMonth;
-      }
-    } catch(e) {
-      return false;
+  // Check if order date is within the current range.
+  // Use createdAt/orderDate through TFL_DB so Indian display dates do not break parsing.
+  const isInPeriod = (order) => {
+    const orderTime = TFL_DB.getOrderTime(order);
+    if (!orderTime) return false;
+    const oDate = new Date(orderTime);
+
+    if (currentKpiFilter === 'today') {
+      return oDate >= startOfToday;
+    } else if (currentKpiFilter === 'week') {
+      return oDate >= startOfWeek;
+    } else if (currentKpiFilter === 'month') {
+      return oDate >= startOfMonth;
     }
     return false;
   };
 
   // Filter active lists
-  const filteredOrders = orders.filter(o => isInPeriod(o.orderDate));
+  const filteredOrders = orders.filter(o => isInPeriod(o));
   const deliveredOrders = filteredOrders.filter(o => o.status === "Delivered");
   
   let totalRevenue = 0;
@@ -388,14 +386,11 @@ function renderDashboard() {
   });
 
   // For the recent activity feed, we always show today's incoming orders
-  const todayStr = now.toLocaleDateString();
+  const todayStr = now.toDateString();
   const todayOrders = orders.filter(o => {
-    try {
-      const orderDateStr = new Date(o.orderDate).toLocaleDateString();
-      return orderDateStr === todayStr;
-    } catch(e) {
-      return false;
-    }
+    const orderTime = TFL_DB.getOrderTime(o);
+    if (!orderTime) return false;
+    return new Date(orderTime).toDateString() === todayStr;
   });
 
   // Render recent 5 orders today
@@ -416,8 +411,8 @@ function renderDashboard() {
   }
   
   recent.forEach(order => {
-    const itemsSummary = order.items.map(i => `${i.name} (${i.quantity})`).join(", ");
-    const dateObj = new Date(order.orderDate);
+    const itemsSummary = (order.items || []).map(i => `${i.name} (${i.quantity})`).join(", ");
+    const dateObj = new Date(TFL_DB.getOrderTime(order));
     const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
     const row = document.createElement("tr");
