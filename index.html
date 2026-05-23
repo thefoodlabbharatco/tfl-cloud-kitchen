@@ -188,14 +188,14 @@
       <button class="slide-over-close" onclick="toggleCheckoutPanel(false)">&times;</button>
     </div>
     <div class="slide-over-body">
-      <form id="checkout-form" onsubmit="submitOrder(event)">
+      <form id="checkout-form" onsubmit="submitOrder(event)" autocomplete="off">
         <div class="form-group">
           <label class="form-label" for="cust-name">Name *</label>
-          <input type="text" id="cust-name" class="form-control" placeholder="Enter your full name" required>
+          <input type="text" id="cust-name" class="form-control" placeholder="Enter your full name" autocomplete="new-password" required>
         </div>
         <div class="form-group">
           <label class="form-label" for="cust-gender">Gender *</label>
-          <select id="cust-gender" class="form-control" required style="background-color: #1c1c1e; color: #fff;">
+          <select id="cust-gender" class="form-control" autocomplete="off" required style="background-color: #1c1c1e; color: #fff;">
             <option value="" disabled selected style="color: #999;">Select your gender</option>
             <option value="Male">Male</option>
             <option value="Female">Female</option>
@@ -204,15 +204,15 @@
         </div>
         <div class="form-group">
           <label class="form-label" for="cust-phone">WhatsApp Number *</label>
-          <input type="tel" id="cust-phone" class="form-control" placeholder="10-digit mobile number" required>
+          <input type="tel" id="cust-phone" class="form-control" placeholder="10-digit mobile number" autocomplete="new-password" required>
         </div>
         <div class="form-group">
           <label class="form-label" for="cust-address">Delivery Address *</label>
-          <textarea id="cust-address" class="form-control" placeholder="House/Flat No, Street, Landmark, Area" rows="3" required></textarea>
+          <textarea id="cust-address" class="form-control" placeholder="House/Flat No, Street, Landmark, Area" rows="3" autocomplete="new-password" required></textarea>
         </div>
         <div class="form-group">
           <label class="form-label" for="cust-email">Email (Optional)</label>
-          <input type="email" id="cust-email" class="form-control" placeholder="For receipt copy">
+          <input type="email" id="cust-email" class="form-control" placeholder="For receipt copy" autocomplete="new-password">
         </div>
         
         <div class="form-group">

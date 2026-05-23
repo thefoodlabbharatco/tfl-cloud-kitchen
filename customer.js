@@ -36,6 +36,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // 3. Render content
   renderApp();
+  resetCheckoutForm();
 
   // 4. Set up search input listener
   const searchInput = document.getElementById("menu-search-input");
@@ -856,8 +857,21 @@ function closeAllPanels() {
 
 function openCheckoutPanel() {
   if (cart.length === 0) return;
+  currentReceiptOrder = null;
+  resetCheckoutForm();
   toggleCartPanel(false);
   toggleCheckoutPanel(true);
+}
+
+function resetCheckoutForm() {
+  const form = document.getElementById("checkout-form");
+  if (!form) return;
+  form.reset();
+  const gender = document.getElementById("cust-gender");
+  if (gender) gender.value = "";
+  const codOption = document.querySelector('input[name="payment-mode"][value="COD"]');
+  if (codOption) codOption.checked = true;
+  toggleUpiSection(false);
 }
 
 // Toggle UPI payment instructions
