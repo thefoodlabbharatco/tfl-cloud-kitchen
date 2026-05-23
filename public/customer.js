@@ -34,6 +34,10 @@ if (document.readyState === "loading") {
 }
 
 async function initCustomerPage() {
+  if (!localStorage.getItem("tfl_theme")) {
+    localStorage.setItem("tfl_theme", "light");
+  }
+
   // Initialize theme first
   TFL_DB.initTheme();
   document.addEventListener("tfl_db_updated", handleDbUpdated);
