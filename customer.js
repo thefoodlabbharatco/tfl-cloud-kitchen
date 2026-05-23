@@ -1214,6 +1214,16 @@ function formatWhatsAppNumber(phone) {
   return clean;
 }
 
+function getRestaurantWhatsAppNumber(settings, order) {
+  const orderNumber = formatWhatsAppNumber(settings.whatsappNumber);
+  const supportNumber = formatWhatsAppNumber(settings.supportNumber);
+  const customerNumber = formatWhatsAppNumber(order && order.customerPhone);
+
+  if (orderNumber && orderNumber !== customerNumber) return orderNumber;
+  if (supportNumber && supportNumber !== customerNumber) return supportNumber;
+  return "";
+}
+
 // Helper for gender greeting
 function getGenderSalutation(order) {
   if (order.customerGender === "Female") {
@@ -1306,7 +1316,11 @@ function sendOrderWhatsApp() {
   message += `Please confirm receipt and estimate delivery time!`;
   
   const encodedMsg = encodeURIComponent(message);
-  const waNumber = formatWhatsAppNumber(settings.whatsappNumber); // Read from admin configuration
+  const waNumber = getRestaurantWhatsAppNumber(settings, currentReceiptOrder);
+  if (!waNumber) {
+    TFL_DB.showToast("Restaurant WhatsApp number is not configured correctly. Please contact the kitchen.", "error");
+    return;
+  }
   
   // Open wa.me link
   window.open(`https://wa.me/${waNumber}?text=${encodedMsg}`, '_blank');
@@ -1324,8 +1338,12 @@ function sendUpiScreenshotWhatsApp() {
   message += `Attaching receipt screenshot below.`;
   
   const encodedMsg = encodeURIComponent(message);
-  // Send to customer support or restaurant WhatsApp
-  const waNumber = formatWhatsAppNumber(settings.whatsappNumber);
+  // Send to customer support or restaurant WhatsApp, never to the customer's own number.
+  const waNumber = getRestaurantWhatsAppNumber(settings, currentReceiptOrder);
+  if (!waNumber) {
+    TFL_DB.showToast("Restaurant WhatsApp number is not configured correctly. Please contact the kitchen.", "error");
+    return;
+  }
   
   window.open(`https://wa.me/${waNumber}?text=${encodedMsg}`, '_blank');
 }
