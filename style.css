@@ -5,10 +5,10 @@
 /* --- DESIGN TOKENS (CSS VARIABLES) --- */
 :root {
   /* Color defaults - Overridden dynamically by JS if configured by admin */
-  --color-primary: #ff6b00;
-  --color-primary-h: 25;
-  --color-primary-s: 100%;
-  --color-primary-l: 50%;
+  --color-primary: #16a34a;
+  --color-primary-h: 142;
+  --color-primary-s: 72%;
+  --color-primary-l: 38%;
   
   --color-bg: #0b0b0c;
   --color-bg-card: #141416;
@@ -124,12 +124,12 @@ h1, h2, h3, h4, h5, h6, .brand-font {
 .btn-primary {
   background-color: var(--color-primary);
   color: #fff;
-  box-shadow: 0 4px 14px rgba(255, 107, 0, 0.4);
+  box-shadow: 0 4px 14px hsla(var(--color-primary-h), var(--color-primary-s), var(--color-primary-l), 0.34);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 107, 0, 0.6);
+  box-shadow: 0 6px 22px hsla(var(--color-primary-h), var(--color-primary-s), var(--color-primary-l), 0.5);
   filter: brightness(1.1);
 }
 
@@ -196,7 +196,7 @@ h1, h2, h3, h4, h5, h6, .brand-font {
 }
 
 .badge-offer {
-  background: linear-gradient(135deg, var(--color-primary), #ffb800);
+  background: linear-gradient(135deg, var(--color-primary), hsl(var(--color-primary-h), var(--color-primary-s), 56%));
   color: #fff;
 }
 
@@ -254,7 +254,7 @@ select.form-control option {
 
 .form-control:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.15);
+  box-shadow: 0 0 0 2px hsla(var(--color-primary-h), var(--color-primary-s), var(--color-primary-l), 0.16);
   background-color: rgba(255, 255, 255, 0.08);
 }
 
@@ -355,8 +355,8 @@ select.form-control option {
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 10px rgba(255, 107, 0, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(255, 107, 0, 0.6); }
+  0%, 100% { box-shadow: 0 0 10px hsla(var(--color-primary-h), var(--color-primary-s), var(--color-primary-l), 0.3); }
+  50% { box-shadow: 0 0 20px hsla(var(--color-primary-h), var(--color-primary-s), var(--color-primary-l), 0.56); }
 }
 
 @keyframes spin {
@@ -606,5 +606,4 @@ body.light-theme .theme-toggle-btn {
     padding: 20px;
   }
 }
-
 

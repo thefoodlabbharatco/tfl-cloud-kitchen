@@ -75,12 +75,12 @@
 
 .sidebar-item:hover, .sidebar-item.active {
   color: #fff;
-  background-color: rgba(255, 107, 0, 0.08);
+  background-color: hsla(var(--color-primary-h), var(--color-primary-s), var(--color-primary-l), 0.1);
 }
 
 .sidebar-item.active {
   color: var(--color-primary);
-  background-color: rgba(255, 107, 0, 0.1);
+  background-color: hsla(var(--color-primary-h), var(--color-primary-s), var(--color-primary-l), 0.14);
   font-weight: 600;
 }
 
@@ -224,7 +224,7 @@
   width: 52px;
   height: 52px;
   border-radius: 12px;
-  background-color: rgba(255, 107, 0, 0.08);
+  background-color: hsla(var(--color-primary-h), var(--color-primary-s), var(--color-primary-l), 0.1);
   color: var(--color-primary);
   display: flex;
   align-items: center;
@@ -327,7 +327,7 @@
   font-weight: 600;
   text-transform: uppercase;
 }
-.role-owner { background-color: rgba(255, 107, 0, 0.15); color: var(--color-primary); }
+.role-owner { background-color: hsla(var(--color-primary-h), var(--color-primary-s), var(--color-primary-l), 0.15); color: var(--color-primary); }
 .role-manager { background-color: rgba(59, 130, 246, 0.15); color: var(--color-info); }
 .role-staff { background-color: rgba(142, 142, 147, 0.15); color: var(--color-text-muted); }
 
@@ -465,15 +465,15 @@
 
 .filter-pill:hover {
   color: #fff;
-  border-color: var(--color-primary, #ff6b00);
-  background-color: rgba(255, 107, 0, 0.05);
+  border-color: var(--color-primary, #16a34a);
+  background-color: hsla(var(--color-primary-h), var(--color-primary-s), var(--color-primary-l), 0.08);
 }
 
 .filter-pill.active {
-  background-color: var(--color-primary, #ff6b00) !important;
-  border-color: var(--color-primary, #ff6b00) !important;
+  background-color: var(--color-primary, #16a34a) !important;
+  border-color: var(--color-primary, #16a34a) !important;
   color: #fff !important;
-  box-shadow: 0 4px 12px rgba(255, 107, 0, 0.3) !important;
+  box-shadow: 0 4px 12px hsla(var(--color-primary-h), var(--color-primary-s), var(--color-primary-l), 0.34) !important;
 }
 
 /* --- PREMIUM LIGHT THEME & MICRO-INTERACTIONS OVERRIDES FOR ADMIN --- */
@@ -495,7 +495,7 @@ body.light-theme .modal-header h3 {
 }
 
 body.light-theme .sidebar-item:hover {
-  background-color: rgba(255, 107, 0, 0.08);
+  background-color: hsla(var(--color-primary-h), var(--color-primary-s), var(--color-primary-l), 0.1);
 }
 
 body.light-theme .admin-table th {
