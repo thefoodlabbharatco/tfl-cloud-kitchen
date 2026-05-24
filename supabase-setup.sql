@@ -17,6 +17,10 @@ create table if not exists tfl_orders (
 alter table tfl_metadata enable row level security;
 alter table tfl_orders enable row level security;
 
+grant usage on schema public to anon;
+grant select, insert, update, delete on table tfl_metadata to anon;
+grant select, insert, update, delete on table tfl_orders to anon;
+
 create policy "Allow app metadata read"
 on tfl_metadata for select
 to anon
