@@ -1,5 +1,5 @@
 window.TFL_CONFIG = {
-  "supabaseUrl": "https://napbxlmhmbelwuxxbnyq.supabase.co",
-  "supabaseKey": "sb_publishable_k6ofEjNmElPKjRChvdN6Pg_4hwUgM-E",
+  "supabaseUrl": "https://rtlnhteibmtudqchlzbv.supabase.co",
+  "supabaseKey": "sb_publishable_7cM5UqJbdAuCpS7aad2gzQ_2UtP4Lf0",
   "lockSupabaseConfig": false
 };

@@ -25,8 +25,8 @@ const DEFAULT_SETTINGS = {
   googleSheetUrl: "", // Paste your Apps Script URL here to enable cloud sync
   googleSheetEnabled: false,
   supabaseEnabled: true,
-  supabaseUrl: TFL_RUNTIME_CONFIG.supabaseUrl || "https://napbxlmhmbelwuxxbnyq.supabase.co",
-  supabaseKey: TFL_RUNTIME_CONFIG.supabaseKey || "sb_publishable_k6ofEjNmElPKjRChvdN6Pg_4hwUgM-E",
+  supabaseUrl: TFL_RUNTIME_CONFIG.supabaseUrl || "https://rtlnhteibmtudqchlzbv.supabase.co",
+  supabaseKey: TFL_RUNTIME_CONFIG.supabaseKey || "sb_publishable_7cM5UqJbdAuCpS7aad2gzQ_2UtP4Lf0",
   orderRetentionDays: 2,
   maxCompletedOrders: 100
 };

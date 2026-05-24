@@ -19,8 +19,8 @@ const files = [
 fs.mkdirSync(publicDir, { recursive: true });
 
 const runtimeConfig = {
-  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || "https://napbxlmhmbelwuxxbnyq.supabase.co",
-  supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_k6ofEjNmElPKjRChvdN6Pg_4hwUgM-E",
+  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || "https://rtlnhteibmtudqchlzbv.supabase.co",
+  supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_7cM5UqJbdAuCpS7aad2gzQ_2UtP4Lf0",
   lockSupabaseConfig: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 };
 
