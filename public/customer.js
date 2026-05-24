@@ -1182,13 +1182,10 @@ function openReceiptModal(order) {
     </div>
   `;
 
-  // Control WhatsApp verification box
+  // Keep payment verification visible for every receipt; UPI customers send screenshots,
+  // COD customers can still send payment confirmation if requested by staff.
   const verificationBox = document.getElementById("upi-verification-whatsapp-box");
-  if (order.paymentMode === "UPI") {
-    verificationBox.style.display = "block";
-  } else {
-    verificationBox.style.display = "none";
-  }
+  if (verificationBox) verificationBox.style.display = "block";
 
   updateRestaurantCallLink(settings);
   
