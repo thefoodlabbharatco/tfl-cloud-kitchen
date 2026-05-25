@@ -149,6 +149,7 @@ function loadBrandCustomization() {
   // Apply images
   if (settings.brandLogo) {
     document.getElementById("tfl-logo").src = settings.brandLogo;
+    TFL_DB.updateBrandIcons(settings.brandLogo);
   }
   if (settings.heroImage) {
     document.getElementById("tfl-hero").style.backgroundImage = `url('${settings.heroImage}')`;

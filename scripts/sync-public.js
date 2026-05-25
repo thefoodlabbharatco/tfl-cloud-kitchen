@@ -12,6 +12,7 @@ const files = [
   "admin.js",
   "manifest.json",
   "service-worker.js",
+  "favicon.ico",
   "favicon.png",
   "apple-touch-icon.png",
   "tfl-app-icon-192.png",

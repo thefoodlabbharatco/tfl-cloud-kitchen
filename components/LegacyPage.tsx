@@ -63,14 +63,15 @@ export default function LegacyPage({ title, description, bodyHtml, pageScript, b
         <meta name="description" content={description} />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="theme-color" content="#16a34a" />
-        <link rel="icon" type="image/png" sizes="64x64" href={assetPath(basePath, "favicon.png?v=41")} />
-        <link rel="shortcut icon" href={assetPath(basePath, "favicon.png?v=41")} />
-        <link rel="apple-touch-icon" sizes="180x180" href={assetPath(basePath, "apple-touch-icon.png?v=41")} />
+        <link rel="icon" type="image/x-icon" href={assetPath(basePath, "favicon.ico?v=42")} />
+        <link rel="icon" type="image/png" sizes="64x64" href={assetPath(basePath, "favicon.png?v=42")} />
+        <link rel="shortcut icon" href={assetPath(basePath, "favicon.ico?v=42")} />
+        <link rel="apple-touch-icon" sizes="180x180" href={assetPath(basePath, "apple-touch-icon.png?v=42")} />
         <link rel="preconnect" href="https://unpkg.com" />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" />
         <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL || "https://rtlnhteibmtudqchlzbv.supabase.co"} />
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
-        <link rel="manifest" href={assetPath(basePath, "manifest.json?v=41")} />
+        <link rel="manifest" href={assetPath(basePath, "manifest.json?v=42")} />
         <link rel="preload" as="image" href={assetPath(basePath, "tfl_hero.png")} />
         <link rel="preload" as="image" href={assetPath(basePath, "tfl_logo.png")} />
         <link rel="preload" as="script" href={assetPath(basePath, "runtime-config.js")} />

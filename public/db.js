@@ -547,6 +547,28 @@ const TFL_DB = {
     return newTheme;
   },
 
+  updateBrandIcons(iconUrl) {
+    if (!iconUrl) return;
+
+    const iconLinks = [
+      { selector: "link[rel='icon'][type='image/x-icon']", rel: "icon", type: "image/x-icon" },
+      { selector: "link[rel='icon'][type='image/png']", rel: "icon", type: "image/png" },
+      { selector: "link[rel='shortcut icon']", rel: "shortcut icon" },
+      { selector: "link[rel='apple-touch-icon']", rel: "apple-touch-icon" }
+    ];
+
+    iconLinks.forEach(({ selector, rel, type }) => {
+      let link = document.querySelector(selector);
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = rel;
+        if (type) link.type = type;
+        document.head.appendChild(link);
+      }
+      link.href = iconUrl;
+    });
+  },
+
   updateThemeIcons() {
     const toggleBtns = document.querySelectorAll(".theme-toggle-btn");
     toggleBtns.forEach(btn => {

@@ -229,6 +229,7 @@ function loadCustomizationSettings() {
   document.getElementById("admin-sidebar-title").innerHTML = settings.restaurantName.replace(/\bLab\b/gi, "<span>Lab</span>");
   if (settings.brandLogo) {
     document.getElementById("admin-logo-preview").src = settings.brandLogo;
+    TFL_DB.updateBrandIcons(settings.brandLogo);
   }
   
   // Dynamic stylesheets

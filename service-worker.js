@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tfl-cache-v41';
+const CACHE_NAME = 'tfl-cache-v42';
 const ASSETS_TO_CACHE = [
   './',
   './admin',
@@ -12,6 +12,7 @@ const ASSETS_TO_CACHE = [
   './customer.js',
   './admin.js',
   './manifest.json',
+  './favicon.ico',
   './favicon.png',
   './apple-touch-icon.png',
   './tfl-app-icon-192.png',
