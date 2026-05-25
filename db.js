@@ -11,8 +11,6 @@ const DEFAULT_SETTINGS = {
   // Change your UPI ID and QR code here
   upiId: "tfl@upi", 
   qrImageUrl: "https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg",
-  // Change Google Form prefilled URL link here (Submit backup order)
-  googleFormLink: "https://docs.google.com/forms/d/e/1FAIpQLSf_your_form_id/formResponse?entry.111111111={name}&entry.222222222={phone}&entry.333333333={address}&entry.444444444={items}&entry.555555555={total}&entry.666666666={payment}",
   deliveryCharge: 40,
   lateNightFeeEnabled: false,
   lateNightFeeAmount: 30,

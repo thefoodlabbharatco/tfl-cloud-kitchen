@@ -1626,7 +1626,6 @@ function renderSettingsForm() {
   document.getElementById("settings-supabase-toggle").checked = settings.supabaseEnabled || false;
   document.getElementById("settings-supabase-url").value = settings.supabaseUrl || "";
   document.getElementById("settings-supabase-key").value = settings.supabaseKey || "";
-  document.getElementById("settings-gform-link").value = settings.googleFormLink || "";
 }
 
 async function saveSettings(event) {
@@ -1652,7 +1651,6 @@ async function saveSettings(event) {
   settings.supabaseEnabled = document.getElementById("settings-supabase-toggle").checked;
   settings.supabaseUrl = document.getElementById("settings-supabase-url").value.trim();
   settings.supabaseKey = document.getElementById("settings-supabase-key").value.trim();
-  settings.googleFormLink = document.getElementById("settings-gform-link").value.trim();
   
   TFL_DB.saveSettings(settings);
   TFL_DB.saveOrders(TFL_DB.getOrders());
