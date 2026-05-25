@@ -352,6 +352,14 @@
   max-height: 85vh;
 }
 
+.admin-modal > form {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .admin-modal.active {
   opacity: 1;
   pointer-events: auto;
@@ -364,12 +372,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex: 0 0 auto;
 }
 
 .modal-body {
   padding: var(--space-lg);
   overflow-y: auto;
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .modal-footer {
@@ -378,6 +388,8 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--space-md);
+  flex: 0 0 auto;
+  background: var(--color-bg-card);
 }
 
 /* Condiments selector grid */
@@ -428,6 +440,11 @@
   .main-content {
     margin-left: 0;
     padding: var(--space-lg);
+  }
+
+  .admin-modal {
+    width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
   }
 }
 
