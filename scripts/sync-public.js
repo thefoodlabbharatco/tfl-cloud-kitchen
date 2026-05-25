@@ -12,6 +12,8 @@ const files = [
   "admin.js",
   "manifest.json",
   "service-worker.js",
+  "favicon.png",
+  "apple-touch-icon.png",
   "tfl_logo.png",
   "tfl_hero.png"
 ];

@@ -62,7 +62,10 @@ export default function LegacyPage({ title, description, bodyHtml, pageScript, b
         <title>{title}</title>
         <meta name="description" content={description} />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="theme-color" content="#ff6b00" />
+        <meta name="theme-color" content="#16a34a" />
+        <link rel="icon" type="image/png" sizes="32x32" href={assetPath(basePath, "favicon.png")} />
+        <link rel="shortcut icon" href={assetPath(basePath, "favicon.png")} />
+        <link rel="apple-touch-icon" sizes="180x180" href={assetPath(basePath, "apple-touch-icon.png")} />
         <link rel="preconnect" href="https://unpkg.com" />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" />
         <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL || "https://rtlnhteibmtudqchlzbv.supabase.co"} />
