@@ -365,12 +365,26 @@
 
           <div class="form-group">
             <label class="form-label" for="cust-logo-url">Brand Logo Image URL (or relative path like tfl_logo.png)</label>
-            <input type="text" id="cust-logo-url" class="form-control" placeholder="https://example.com/logo.png">
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input type="text" id="cust-logo-url" class="form-control" placeholder="https://example.com/logo.png">
+              <label class="btn btn-secondary btn-sm" style="white-space: nowrap; cursor: pointer;">
+                <i data-lucide="upload" style="width: 14px; height: 14px;"></i> Upload
+                <input type="file" accept="image/*" style="display: none;" onchange="handleAdminImageUpload(this, 'cust-logo-url', 'cust-logo-status', { maxWidth: 600, maxHeight: 600, quality: 0.86, prefix: 'logo' })">
+              </label>
+            </div>
+            <div id="cust-logo-status" style="font-size: 0.72rem; color: var(--color-success); margin-top: 4px; display: none;"></div>
           </div>
 
           <div class="form-group">
             <label class="form-label" for="cust-hero-url">Hero Section Background Image URL (or relative path like tfl_hero.png)</label>
-            <input type="text" id="cust-hero-url" class="form-control" placeholder="https://example.com/hero.png">
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input type="text" id="cust-hero-url" class="form-control" placeholder="https://example.com/hero.png">
+              <label class="btn btn-secondary btn-sm" style="white-space: nowrap; cursor: pointer;">
+                <i data-lucide="upload" style="width: 14px; height: 14px;"></i> Upload
+                <input type="file" accept="image/*" style="display: none;" onchange="handleAdminImageUpload(this, 'cust-hero-url', 'cust-hero-status', { maxWidth: 1400, maxHeight: 900, quality: 0.8, prefix: 'hero' })">
+              </label>
+            </div>
+            <div id="cust-hero-status" style="font-size: 0.72rem; color: var(--color-success); margin-top: 4px; display: none;"></div>
           </div>
 
           <button type="submit" class="btn btn-primary" style="margin-top: var(--space-md);">Save Brand Aesthetics</button>
@@ -692,7 +706,14 @@ with check (bucket_id = 'product-images');</pre>
         </div>
         <div class="form-group">
           <label class="form-label" for="u-image">Promo Image URL</label>
-          <input type="text" id="u-image" class="form-control" placeholder="https://example.com/banner.png">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="u-image" class="form-control" placeholder="https://example.com/banner.png">
+            <label class="btn btn-secondary btn-sm" style="white-space: nowrap; cursor: pointer;">
+              <i data-lucide="upload" style="width: 14px; height: 14px;"></i> Upload
+              <input type="file" accept="image/*" style="display: none;" onchange="handleAdminImageUpload(this, 'u-image', 'u-image-status', { maxWidth: 1400, maxHeight: 800, quality: 0.8, prefix: 'banner' })">
+            </label>
+          </div>
+          <div id="u-image-status" style="font-size: 0.72rem; color: var(--color-success); margin-top: 4px; display: none;"></div>
         </div>
         <div class="form-row">
           <div class="form-group">

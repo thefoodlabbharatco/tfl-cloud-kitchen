@@ -1776,7 +1776,7 @@ function toggleCondimentPriceInput(checkbox) {
   }
 }
 
-function compressImage(file, maxWidth, maxHeight, quality) {
+function compressImage(file, maxWidth, maxHeight, quality, outputMimeType = "image/webp") {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -1802,7 +1802,7 @@ function compressImage(file, maxWidth, maxHeight, quality) {
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
-        const compressedDataUrl = canvas.toDataURL("image/jpeg", quality);
+        const compressedDataUrl = canvas.toDataURL(outputMimeType, quality);
         resolve(compressedDataUrl);
       };
       img.onerror = (err) => reject(err);
@@ -1811,30 +1811,38 @@ function compressImage(file, maxWidth, maxHeight, quality) {
   });
 }
 
-async function handleProductImageUpload(input) {
+async function uploadOptimizedImage(input, targetInputId, statusId, options = {}) {
   const file = input.files[0];
   if (!file) return;
 
-  const statusDiv = document.getElementById("p-image-status");
+  const statusDiv = document.getElementById(statusId);
+  const targetInput = document.getElementById(targetInputId);
+  if (!statusDiv || !targetInput) return;
+
+  const maxWidth = options.maxWidth || 800;
+  const maxHeight = options.maxHeight || 800;
+  const quality = options.quality || 0.82;
+  const prefix = options.prefix || "image";
+  const mimeType = "image/webp";
+
   statusDiv.style.display = "block";
   statusDiv.style.color = "var(--color-primary)";
-  statusDiv.innerText = "Processing & compressing image...";
+  statusDiv.innerText = "Optimizing image to WebP...";
 
   try {
-    const base64DataWithHeader = await compressImage(file, 800, 800, 0.7);
+    const base64DataWithHeader = await compressImage(file, maxWidth, maxHeight, quality, mimeType);
     if (!base64DataWithHeader) {
       throw new Error("Compression resulted in empty data");
     }
 
     const commaIdx = base64DataWithHeader.indexOf(",");
     const base64Data = base64DataWithHeader.substring(commaIdx + 1);
-    const mimeType = "image/jpeg";
-    let fileName = file.name || "product_image.jpg";
+    let fileName = file.name || `${prefix}_image.webp`;
     const extIdx = fileName.lastIndexOf(".");
     if (extIdx !== -1) {
-      fileName = fileName.substring(0, extIdx) + ".jpg";
+      fileName = `${prefix}-${fileName.substring(0, extIdx)}.webp`;
     } else {
-      fileName = fileName + ".jpg";
+      fileName = `${prefix}-${fileName}.webp`;
     }
 
     const settings = TFL_DB.getSettings();
@@ -1844,43 +1852,41 @@ async function handleProductImageUpload(input) {
       try {
         const result = await TFL_DB.uploadImageToCloud(fileName, mimeType, base64Data);
         if (result.status === "success" && result.imageUrl) {
-          document.getElementById("p-image").value = result.imageUrl;
+          targetInput.value = result.imageUrl;
           statusDiv.style.color = "var(--color-success)";
-          statusDiv.innerText = "Successfully uploaded to Supabase product-images bucket!";
+          statusDiv.innerText = "Uploaded as optimized WebP to Supabase Storage.";
         } else {
           throw new Error(result.message || "Unknown error from Supabase upload");
         }
       } catch (err) {
         console.error(err);
         statusDiv.style.color = "var(--color-danger)";
-        statusDiv.innerText = "Supabase upload failed. Saving compressed Base64 locally.";
-        document.getElementById("p-image").value = base64DataWithHeader;
-      }
-    } else if (settings.googleSheetEnabled && settings.googleSheetUrl) {
-      statusDiv.innerText = "Uploading to Google Drive...";
-      try {
-        const result = await TFL_DB.uploadImageToCloud(fileName, mimeType, base64Data);
-        if (result.status === "success" && result.imageUrl) {
-          document.getElementById("p-image").value = result.imageUrl;
-          statusDiv.style.color = "var(--color-success)";
-          statusDiv.innerText = "Successfully uploaded to Google Drive folder 'TFL Product Images'!";
-        } else {
-          throw new Error(result.message || "Unknown error from Drive upload API");
-        }
-      } catch (err) {
-        console.error(err);
-        statusDiv.style.color = "var(--color-danger)";
-        statusDiv.innerText = "Drive upload failed. Saving compressed Base64 locally.";
-        document.getElementById("p-image").value = base64DataWithHeader;
+        statusDiv.innerText = "Supabase upload failed. Optimized image saved locally.";
+        targetInput.value = base64DataWithHeader;
       }
     } else {
-      document.getElementById("p-image").value = base64DataWithHeader;
+      targetInput.value = base64DataWithHeader;
       statusDiv.style.color = "var(--color-success)";
-      statusDiv.innerText = "Cloud sync disabled. Compressed image saved locally as Base64.";
+      statusDiv.innerText = "Supabase not configured. Optimized image saved locally.";
     }
   } catch (err) {
     console.error(err);
     statusDiv.style.color = "var(--color-danger)";
-    statusDiv.innerText = "Failed to process/compress image: " + err.message;
+    statusDiv.innerText = "Failed to optimize image: " + err.message;
+  } finally {
+    input.value = "";
   }
+}
+
+async function handleProductImageUpload(input) {
+  return uploadOptimizedImage(input, "p-image", "p-image-status", {
+    maxWidth: 800,
+    maxHeight: 800,
+    quality: 0.82,
+    prefix: "product"
+  });
+}
+
+async function handleAdminImageUpload(input, targetInputId, statusId, options = {}) {
+  return uploadOptimizedImage(input, targetInputId, statusId, options);
 }
