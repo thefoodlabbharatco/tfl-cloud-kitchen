@@ -735,14 +735,26 @@ function getGenderSalutation(order) {
   }
 }
 
+function getSubBrandNameById(subBrandId) {
+  const subbrand = TFL_DB.getSubBrands().find(s => s.id === subBrandId);
+  return subbrand ? subbrand.name : "";
+}
+
+function getOrderItemSubBrandId(item) {
+  const products = TFL_DB.getProducts();
+  const product = products.find(prod => prod.id === item.id);
+  return product ? product.category : (item.category || item.subBrand || "");
+}
+
+function getProductSubBrandName(product) {
+  return getSubBrandNameById(product.category) || product.category || "Unassigned";
+}
+
 // Helper for sub-brand greeting
 function getSubBrandGreeting(order) {
-  const products = TFL_DB.getProducts();
-  const subbrands = TFL_DB.getSubBrands();
-  
   const itemCategories = (order.items || []).map(item => {
-    const p = products.find(prod => prod.id === item.id);
-    return p ? p.category : null;
+    const subBrandId = getOrderItemSubBrandId(item);
+    return subBrandId || null;
   }).filter(c => c !== null);
   
   const counts = {};
@@ -757,9 +769,9 @@ function getSubBrandGreeting(order) {
     }
   }
   
-  const sb = subbrands.find(s => s.id === maxCat);
-  if (sb) {
-    return `Greetings From ${sb.name}! Thanks for ordering.`;
+  const subBrandName = getSubBrandNameById(maxCat);
+  if (subBrandName) {
+    return `Greetings From ${subBrandName}! Thanks for ordering.`;
   }
   return "Greetings From The Food Lab! Thanks for ordering.";
 }
@@ -1039,6 +1051,7 @@ function renderProductsTable() {
       : 'None';
       
     const profit = p.price - p.costPrice;
+    const subBrandName = getProductSubBrandName(p);
     
     // Action button to List/Unlist product formulation
     const listedLabel = p.unlisted ? "List" : "Unlist";
@@ -1057,7 +1070,7 @@ function renderProductsTable() {
           </div>
         </div>
       </td>
-      <td><span style="font-size: 0.8rem; font-weight: 600; color: var(--color-primary); text-transform: uppercase;">${p.category.replace('-', ' ')}</span></td>
+      <td><span style="font-size: 0.8rem; font-weight: 600; color: var(--color-primary);">${subBrandName}</span></td>
       <td>
         <div>Sell: <strong>₹${p.price}</strong></div>
         <div style="font-size: 0.75rem; color: var(--color-text-muted);">Cost: ₹${p.costPrice}</div>
@@ -1384,6 +1397,7 @@ async function handleSubBrandSubmit(event) {
   TFL_DB.saveSubBrands(subbrands);
   closeSubBrandModal();
   renderSubBrandsTable();
+  renderProductsTable();
   triggerBackgroundSync();
 }
 

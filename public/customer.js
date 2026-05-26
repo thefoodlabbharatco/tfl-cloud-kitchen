@@ -1027,6 +1027,8 @@ async function submitOrder(event) {
   const orderedItems = cart.map(item => ({
     id: item.product.id,
     name: item.product.name,
+    category: item.product.category,
+    subBrand: item.product.category,
     quantity: item.quantity,
     price: item.subtotal / item.quantity,
     condiments: item.condiments
@@ -1275,14 +1277,22 @@ function getGenderSalutation(order) {
   }
 }
 
+function getSubBrandNameById(subBrandId) {
+  const subbrand = TFL_DB.getSubBrands().find(s => s.id === subBrandId);
+  return subbrand ? subbrand.name : "";
+}
+
+function getOrderItemSubBrandId(item) {
+  const products = TFL_DB.getProducts();
+  const product = products.find(prod => prod.id === item.id);
+  return product ? product.category : (item.category || item.subBrand || "");
+}
+
 // Helper for sub-brand greeting
 function getSubBrandGreeting(order) {
-  const products = TFL_DB.getProducts();
-  const subbrands = TFL_DB.getSubBrands();
-  
   const itemCategories = (order.items || []).map(item => {
-    const p = products.find(prod => prod.id === item.id);
-    return p ? p.category : null;
+    const subBrandId = getOrderItemSubBrandId(item);
+    return subBrandId || null;
   }).filter(c => c !== null);
   
   const counts = {};
@@ -1297,9 +1307,9 @@ function getSubBrandGreeting(order) {
     }
   }
   
-  const sb = subbrands.find(s => s.id === maxCat);
-  if (sb) {
-    return `Greetings From ${sb.name}! Thanks for ordering.`;
+  const subBrandName = getSubBrandNameById(maxCat);
+  if (subBrandName) {
+    return `Greetings From ${subBrandName}! Thanks for ordering.`;
   }
   return "Greetings From The Food Lab! Thanks for ordering.";
 }
