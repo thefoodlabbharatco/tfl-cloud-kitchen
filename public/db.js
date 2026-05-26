@@ -51,6 +51,7 @@ const DEFAULT_PRODUCTS = [
     bestseller: true,
     inStock: true,
     condiments: [
+      { name: "Add Onion Filling", price: 0 },
       { name: "Extra butter", price: 10 },
       { name: "Achaar", price: 0 },
       { name: "Green chutney", price: 0 }
@@ -68,6 +69,7 @@ const DEFAULT_PRODUCTS = [
     bestseller: false,
     inStock: true,
     condiments: [
+      { name: "Add Onion Filling", price: 0 },
       { name: "Extra butter", price: 10 },
       { name: "Raita", price: 15 },
       { name: "Mint chutney", price: 0 },
@@ -458,8 +460,25 @@ const TFL_DB = {
     this.initRealtimeSubscription();
   },
 
-  getProducts() { return this.getLocal("products", DEFAULT_PRODUCTS); },
-  saveProducts(products) { this.setLocal("products", products); },
+  ensureParathaOnionFilling(products) {
+    if (!Array.isArray(products)) return products;
+    return products.map(product => {
+      if (!product || product.category !== "project-paratha") return product;
+      const condiments = Array.isArray(product.condiments) ? product.condiments : [];
+      const hasOnionFilling = condiments.some(cond => {
+        const name = typeof cond === "object" && cond !== null ? cond.name : cond;
+        return String(name || "").trim().toLowerCase() === "add onion filling";
+      });
+      if (hasOnionFilling) return product;
+      return {
+        ...product,
+        condiments: [{ name: "Add Onion Filling", price: 0 }, ...condiments]
+      };
+    });
+  },
+
+  getProducts() { return this.ensureParathaOnionFilling(this.getLocal("products", DEFAULT_PRODUCTS)); },
+  saveProducts(products) { this.setLocal("products", this.ensureParathaOnionFilling(products)); },
 
   getSubBrands() { return this.getLocal("subbrands", DEFAULT_SUBBRANDS); },
   saveSubBrands(subbrands) { this.setLocal("subbrands", subbrands); },

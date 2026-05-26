@@ -1136,7 +1136,7 @@ function openProductModal(productId = null) {
   });
   
   // Render condiments checkboxes checklist
-  const condimentsList = ["Extra onion", "Green chutney", "Mint chutney", "Raita", "Achaar", "Extra butter", "Extra roti", "Spicy", "Less spicy"];
+  const condimentsList = ["Add Onion Filling", "Extra onion", "Green chutney", "Mint chutney", "Raita", "Achaar", "Extra butter", "Extra roti", "Spicy", "Less spicy"];
   const listDiv = document.getElementById("product-condiments-checklist");
   listDiv.innerHTML = "";
   condimentsList.forEach(c => {
