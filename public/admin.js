@@ -1089,9 +1089,29 @@ function calculateModalProfit() {
   document.getElementById("p-profit-margin").innerText = `₹${margin.toFixed(2)}`;
 }
 
+function syncProductCategorySelection(selectEl) {
+  if (!selectEl) return "";
+  const selectedOption = selectEl.options[selectEl.selectedIndex];
+  const selectedValue = selectedOption ? selectedOption.value : selectEl.value;
+  selectEl.dataset.currentValue = selectedValue || "";
+  return selectEl.dataset.currentValue;
+}
+
+function getProductCategorySelection() {
+  const selectEl = document.getElementById("p-category");
+  const selectedValue = syncProductCategorySelection(selectEl);
+  const validSubBrandIds = new Set(TFL_DB.getSubBrands().map(subBrand => subBrand.id));
+  if (!selectedValue || !validSubBrandIds.has(selectedValue)) {
+    TFL_DB.showToast("Please select a valid sub-brand category.", "error");
+    return "";
+  }
+  return selectedValue;
+}
+
 function openProductModal(productId = null) {
   const selectCategory = document.getElementById("p-category");
   selectCategory.innerHTML = "";
+  selectCategory.onchange = () => syncProductCategorySelection(selectCategory);
   
   // Load current categories/subbrands
   const subbrands = TFL_DB.getSubBrands();
@@ -1136,6 +1156,7 @@ function openProductModal(productId = null) {
     document.getElementById("p-name").value = product.name;
     document.getElementById("p-desc").value = product.description;
     document.getElementById("p-category").value = product.category;
+    syncProductCategorySelection(selectCategory);
     document.getElementById("p-image").value = product.image;
     document.getElementById("p-cost").value = product.costPrice || 0;
     document.getElementById("p-price").value = product.price;
@@ -1164,6 +1185,7 @@ function openProductModal(productId = null) {
     document.getElementById("product-modal-title").innerText = "Formulate New Product";
     document.getElementById("product-form").reset();
     document.getElementById("product-modal-id").value = "";
+    syncProductCategorySelection(selectCategory);
     document.getElementById("p-profit-margin").innerText = "₹0.00";
     document.getElementById("p-image-status").style.display = "none";
     document.querySelectorAll('input[name^="p-condiment-price-"]').forEach(inp => {
@@ -1187,7 +1209,8 @@ async function handleProductSubmit(event) {
   const id = document.getElementById("product-modal-id").value;
   const name = document.getElementById("p-name").value.trim();
   const desc = document.getElementById("p-desc").value.trim();
-  const category = document.getElementById("p-category").value;
+  const category = getProductCategorySelection();
+  if (!category) return;
   const image = document.getElementById("p-image").value.trim();
   const cost = parseFloat(document.getElementById("p-cost").value) || 0;
   const price = parseFloat(document.getElementById("p-price").value) || 0;
@@ -1208,9 +1231,22 @@ async function handleProductSubmit(event) {
   if (id) {
     // Edit Product
     const index = products.findIndex(p => p.id === id);
+    if (index === -1) {
+      TFL_DB.showToast("Product could not be found. Please refresh and try again.", "error");
+      return;
+    }
+    const existingProduct = products[index];
     products[index] = {
-      ...products[index],
-      name, description: desc, category, image, costPrice: cost, price, veg, bestseller, condiments
+      ...existingProduct,
+      name,
+      description: desc,
+      category,
+      image,
+      costPrice: cost,
+      price,
+      veg,
+      bestseller,
+      condiments
     };
   } else {
     // Add Product

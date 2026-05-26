@@ -281,14 +281,20 @@ const TFL_DB = {
     // Synchronously write to in-memory cache
     this._cache[key] = JSON.parse(JSON.stringify(data));
 
-    // Asynchronously serialize and write to localStorage to prevent blocking the main UI thread
-    setTimeout(() => {
+    const writeLocalStorage = () => {
       try {
         localStorage.setItem("tfl_" + key, JSON.stringify(data));
       } catch (e) {
         console.error(`Failed to serialize and write to localStorage for key: tfl_${key}`, e);
       }
-    }, 0);
+    };
+
+    // Keep menu/admin metadata durable immediately, but keep larger order writes off the hot path.
+    if (key === "orders") {
+      setTimeout(writeLocalStorage, 0);
+    } else {
+      writeLocalStorage();
+    }
 
     this.broadcastLocalUpdate(key, data);
     this.dispatchDbUpdated(key, "local", data);
