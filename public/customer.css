@@ -1446,6 +1446,10 @@ body {
   font-size: 1.05rem;
 }
 
+body.hide-product-prices .product-price-row {
+  display: none !important;
+}
+
 .badge-bestseller {
   background: #fef3c7;
   color: #92400e;

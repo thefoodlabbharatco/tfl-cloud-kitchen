@@ -1023,8 +1023,10 @@ function printReceiptFromAdmin(orderId) {
 // --- TAB: PRODUCTS FORMULATION LOGIC (CRUD) ---
 function renderProductsTable() {
   const products = TFL_DB.getProducts();
+  const settings = TFL_DB.getSettings();
   const container = document.getElementById("products-admin-list");
   container.innerHTML = "";
+  updateProductPriceVisibilityButton(settings);
   
   if (products.length === 0) {
     container.innerHTML = `
@@ -1093,6 +1095,26 @@ function renderProductsTable() {
     `;
     container.appendChild(row);
   });
+}
+
+function updateProductPriceVisibilityButton(settings = TFL_DB.getSettings()) {
+  const btn = document.getElementById("btn-toggle-product-prices");
+  if (!btn) return;
+  const pricesHidden = !!settings.hideProductPrices;
+  btn.className = `btn ${pricesHidden ? "btn-success" : "btn-secondary"} btn-sm`;
+  btn.innerHTML = pricesHidden
+    ? `<i data-lucide="eye" style="width: 14px; height: 14px;"></i> Show Prices`
+    : `<i data-lucide="eye-off" style="width: 14px; height: 14px;"></i> Hide Prices`;
+  if (typeof lucide !== "undefined") lucide.createIcons();
+}
+
+async function toggleProductPriceVisibility() {
+  const settings = TFL_DB.getSettings();
+  settings.hideProductPrices = !settings.hideProductPrices;
+  TFL_DB.saveSettings(settings);
+  updateProductPriceVisibilityButton(settings);
+  triggerBackgroundSync();
+  TFL_DB.showToast(settings.hideProductPrices ? "Customer menu prices are now hidden." : "Customer menu prices are now visible.", "success");
 }
 
 function calculateModalProfit() {

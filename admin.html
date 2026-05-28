@@ -261,9 +261,14 @@
       <section id="section-products" class="tab-panel" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);">
           <h3 style="color: #fff;">Product Formulations Catalog</h3>
-          <button class="btn btn-primary btn-sm" onclick="openProductModal()">
-            <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add Product
-          </button>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+            <button id="btn-toggle-product-prices" class="btn btn-secondary btn-sm" onclick="toggleProductPriceVisibility()">
+              <i data-lucide="eye-off" style="width: 14px; height: 14px;"></i> Hide Prices
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="openProductModal()">
+              <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add Product
+            </button>
+          </div>
         </div>
         
         <div class="table-wrapper">

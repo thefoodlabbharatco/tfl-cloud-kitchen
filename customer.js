@@ -321,6 +321,10 @@ function renderProducts() {
   
   const settings = TFL_DB.getSettings();
   const kitchenOpen = !!settings.isOpen;
+  const hideProductPrices = !!settings.hideProductPrices;
+  document.body.classList.toggle("hide-product-prices", hideProductPrices);
+  const sortBtn = document.getElementById("btn-sort");
+  if (sortBtn) sortBtn.style.display = hideProductPrices ? "none" : "";
   let products = TFL_DB.getProducts();
   
   // Filter out unlisted products (done in admin as unlist, here we assume all products has inStock/list property, we add visible check)
