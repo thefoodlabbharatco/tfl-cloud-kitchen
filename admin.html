@@ -649,6 +649,15 @@ with check (bucket_id = 'product-images');</pre>
           <div class="condiments-grid" id="product-condiments-checklist">
             <!-- JS populated checkboxes -->
           </div>
+          <div class="custom-condiment-row">
+            <input type="text" id="custom-condiment-name" class="form-control" placeholder="New condiment name">
+            <input type="number" id="custom-condiment-price" class="form-control" min="0" value="0" placeholder="Price">
+            <button type="button" class="btn btn-secondary" onclick="addCustomCondimentOption()">
+              <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+              Add
+            </button>
+          </div>
+          <p class="form-hint">Keep price 0 for free add-ons. Paid add-ons can use any price.</p>
         </div>
       </div>
       <div class="modal-footer">

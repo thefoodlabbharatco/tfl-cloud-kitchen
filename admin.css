@@ -450,6 +450,25 @@
   background-color: rgba(0, 0, 0, 0.15);
 }
 
+.custom-condiment-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px auto;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: stretch;
+}
+
+.custom-condiment-row .btn {
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.form-hint {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  margin-top: 6px;
+}
+
 /* Sync Indicator Status Banner */
 .sync-banner {
   padding: 0.5rem var(--space-md);
@@ -496,6 +515,10 @@
   }
 
   .image-upload-row {
+    grid-template-columns: 1fr;
+  }
+
+  .custom-condiment-row {
     grid-template-columns: 1fr;
   }
 

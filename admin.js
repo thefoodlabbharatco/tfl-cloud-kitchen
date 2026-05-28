@@ -1125,6 +1125,7 @@ function openProductModal(productId = null) {
   const selectCategory = document.getElementById("p-category");
   selectCategory.innerHTML = "";
   selectCategory.onchange = () => syncProductCategorySelection(selectCategory);
+  const product = productId ? TFL_DB.getProducts().find(p => p.id === productId) : null;
   
   // Load current categories/subbrands
   const subbrands = TFL_DB.getSubBrands();
@@ -1136,7 +1137,9 @@ function openProductModal(productId = null) {
   });
   
   // Render condiments checkboxes checklist
-  const condimentsList = ["Add Onion Filling", "Extra onion", "Green chutney", "Mint chutney", "Raita", "Achaar", "Extra butter", "Extra roti", "Spicy", "Less spicy"];
+  const baseCondimentsList = ["Add Onion Filling", "Extra onion", "Green chutney", "Mint chutney", "Raita", "Achaar", "Extra butter", "Extra roti", "Spicy", "Less spicy"];
+  const savedCondimentNames = (product?.condiments || []).map(c => typeof c === "object" ? c.name : c).filter(Boolean);
+  const condimentsList = Array.from(new Set([...baseCondimentsList, ...savedCondimentNames]));
   const listDiv = document.getElementById("product-condiments-checklist");
   listDiv.innerHTML = "";
   condimentsList.forEach(c => {
@@ -1160,10 +1163,12 @@ function openProductModal(productId = null) {
     `;
     listDiv.appendChild(label);
   });
+
+  document.getElementById("custom-condiment-name").value = "";
+  document.getElementById("custom-condiment-price").value = 0;
   
   if (productId) {
     // Edit Mode
-    const product = TFL_DB.getProducts().find(p => p.id === productId);
     document.getElementById("product-modal-title").innerText = "Modify Formulation";
     document.getElementById("product-modal-id").value = product.id;
     document.getElementById("p-name").value = product.name;
@@ -1182,8 +1187,7 @@ function openProductModal(productId = null) {
         const found = product.condiments.find(c => (typeof c === 'object' ? c.name : c) === cb.value);
         if (found) {
           cb.checked = true;
-          const priceInputName = `p-condiment-price-${cb.value.replace(/\s+/g, '_')}`;
-          const priceInput = document.querySelector(`input[name="${priceInputName}"]`);
+          const priceInput = cb.closest(".checkbox-label")?.querySelector('input[type="number"]');
           if (priceInput) {
             priceInput.disabled = false;
             priceInput.value = typeof found === 'object' ? found.price : 0;
@@ -1233,8 +1237,7 @@ async function handleProductSubmit(event) {
   const checkedBoxes = document.querySelectorAll('input[name="p-condiment-opt"]:checked');
   const condiments = Array.from(checkedBoxes).map(cb => {
     const name = cb.value;
-    const priceInputName = `p-condiment-price-${name.replace(/\s+/g, '_')}`;
-    const priceInput = document.querySelector(`input[name="${priceInputName}"]`);
+    const priceInput = cb.closest(".checkbox-label")?.querySelector('input[type="number"]');
     const price = priceInput ? (parseFloat(priceInput.value) || 0) : 0;
     return { name, price };
   });
@@ -1832,15 +1835,59 @@ function showTemporaryToast(message) {
 }
 
 function toggleCondimentPriceInput(checkbox) {
-  const name = checkbox.value;
-  const priceInputName = `p-condiment-price-${name.replace(/\s+/g, '_')}`;
-  const priceInput = document.querySelector(`input[name="${priceInputName}"]`);
+  const priceInput = checkbox.closest(".checkbox-label")?.querySelector('input[type="number"]');
   if (priceInput) {
     priceInput.disabled = !checkbox.checked;
     if (!checkbox.checked) {
       priceInput.value = 0;
     }
   }
+}
+
+function addCustomCondimentOption() {
+  const nameInput = document.getElementById("custom-condiment-name");
+  const priceInput = document.getElementById("custom-condiment-price");
+  const name = (nameInput?.value || "").trim();
+  const price = parseFloat(priceInput?.value || "0") || 0;
+  const listDiv = document.getElementById("product-condiments-checklist");
+
+  if (!name) {
+    TFL_DB.showToast("Enter a condiment name first.", "warning");
+    nameInput?.focus();
+    return;
+  }
+
+  const exists = Array.from(listDiv.querySelectorAll('input[name="p-condiment-opt"]'))
+    .some(input => input.value.trim().toLowerCase() === name.toLowerCase());
+  if (exists) {
+    TFL_DB.showToast("This condiment already exists for this item.", "warning");
+    return;
+  }
+
+  const label = document.createElement("label");
+  label.className = "checkbox-label";
+  label.style.display = "flex";
+  label.style.justifyContent = "space-between";
+  label.style.alignItems = "center";
+  label.style.width = "100%";
+  label.style.gap = "10px";
+  label.style.marginBottom = "4px";
+  const safeValue = name.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+
+  label.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <input type="checkbox" name="p-condiment-opt" value="${safeValue}" class="checkbox-custom" checked onchange="toggleCondimentPriceInput(this)">
+      <span style="font-size: 0.78rem;"></span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 4px;">
+      <span style="font-size: 0.75rem; color: var(--color-text-muted);">+₹</span>
+      <input type="number" class="form-control" style="width: 60px; padding: 2px 4px; height: 26px; font-size: 0.8rem; margin: 0;" min="0" value="${price}">
+    </div>
+  `;
+  label.querySelector("span").innerText = name;
+  listDiv.appendChild(label);
+  if (nameInput) nameInput.value = "";
+  if (priceInput) priceInput.value = 0;
 }
 
 function compressImage(file, maxWidth, maxHeight, quality, outputMimeType = "image/webp") {
