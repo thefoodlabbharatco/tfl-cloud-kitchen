@@ -1113,7 +1113,8 @@ async function toggleProductPriceVisibility() {
   settings.hideProductPrices = !settings.hideProductPrices;
   TFL_DB.saveSettings(settings);
   updateProductPriceVisibilityButton(settings);
-  triggerBackgroundSync();
+  await triggerBackgroundSync();
+  renderProductsTable();
   TFL_DB.showToast(settings.hideProductPrices ? "Customer menu prices are now hidden." : "Customer menu prices are now visible.", "success");
 }
 

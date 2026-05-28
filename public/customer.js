@@ -433,6 +433,9 @@ function renderProducts() {
         </div>
       </div>
     `;
+    if (hideProductPrices) {
+      card.querySelector(".product-price-row")?.remove();
+    }
     fragment.appendChild(card);
   });
   container.replaceChildren(fragment);
