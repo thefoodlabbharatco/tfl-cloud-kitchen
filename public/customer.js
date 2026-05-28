@@ -321,7 +321,7 @@ function renderProducts() {
   
   const settings = TFL_DB.getSettings();
   const kitchenOpen = !!settings.isOpen;
-  const hideProductPrices = !!settings.hideProductPrices;
+  const hideProductPrices = settings.hideProductPrices === true || settings.hideProductPrices === "true" || settings.hideProductPrices === 1 || settings.hideProductPrices === "1";
   document.body.classList.toggle("hide-product-prices", hideProductPrices);
   const sortBtn = document.getElementById("btn-sort");
   if (sortBtn) sortBtn.style.display = hideProductPrices ? "none" : "";
