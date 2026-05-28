@@ -500,6 +500,8 @@ const TFL_DB = {
     return products.map(product => {
       product = this.normalizeProductCategory(product);
       if (!product || product.category !== "project-paratha") return product;
+      const hiddenCondiments = (product.hiddenCondiments || []).map(name => String(name).trim().toLowerCase());
+      if (hiddenCondiments.includes("add onion filling")) return product;
       const condiments = Array.isArray(product.condiments) ? product.condiments : [];
       const hasOnionFilling = condiments.some(cond => {
         const name = typeof cond === "object" && cond !== null ? cond.name : cond;

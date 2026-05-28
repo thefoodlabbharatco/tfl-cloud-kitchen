@@ -1137,11 +1137,13 @@ function openProductModal(productId = null) {
   });
   
   // Render condiments checkboxes checklist
-  const baseCondimentsList = ["Add Onion Filling", "Extra onion", "Green chutney", "Mint chutney", "Raita", "Achaar", "Extra butter", "Extra roti", "Spicy", "Less spicy"];
+  const baseCondimentsList = getBaseCondimentOptions();
+  const hiddenCondiments = (product?.hiddenCondiments || []).map(name => String(name).trim().toLowerCase());
   const savedCondimentNames = (product?.condiments || []).map(c => typeof c === "object" ? c.name : c).filter(Boolean);
-  const condimentsList = Array.from(new Set([...baseCondimentsList, ...savedCondimentNames]));
+  const condimentsList = Array.from(new Set([...baseCondimentsList.filter(name => !hiddenCondiments.includes(name.toLowerCase())), ...savedCondimentNames]));
   const listDiv = document.getElementById("product-condiments-checklist");
   listDiv.innerHTML = "";
+  listDiv.dataset.deletedCondiments = JSON.stringify(product?.hiddenCondiments || []);
   condimentsList.forEach(c => {
     const label = document.createElement("label");
     label.className = "checkbox-label";
@@ -1159,6 +1161,7 @@ function openProductModal(productId = null) {
       <div style="display: flex; align-items: center; gap: 4px;">
         <span style="font-size: 0.75rem; color: var(--color-text-muted);">+₹</span>
         <input type="number" name="p-condiment-price-${c.replace(/\s+/g, '_')}" class="form-control" style="width: 60px; padding: 2px 4px; height: 26px; font-size: 0.8rem; margin: 0;" min="0" value="0" disabled>
+        <button type="button" class="mini-delete-btn" onclick="removeCondimentOption(this)" aria-label="Delete condiment">&times;</button>
       </div>
     `;
     listDiv.appendChild(label);
@@ -1240,6 +1243,8 @@ async function handleProductSubmit(event) {
   const bestseller = document.getElementById("p-bestseller").checked;
   
   const checkedBoxes = document.querySelectorAll('input[name="p-condiment-opt"]:checked');
+  const condimentsListEl = document.getElementById("product-condiments-checklist");
+  const hiddenCondiments = JSON.parse(condimentsListEl?.dataset.deletedCondiments || "[]");
   const condiments = Array.from(checkedBoxes).map(cb => {
     const name = cb.value;
     const priceInput = cb.closest(".checkbox-label")?.querySelector('input[type="number"]');
@@ -1272,6 +1277,7 @@ async function handleProductSubmit(event) {
       veg,
       bestseller,
       condiments,
+      hiddenCondiments,
       optionGroups
     };
   } else {
@@ -1279,7 +1285,7 @@ async function handleProductSubmit(event) {
     const newId = "p-" + Date.now();
     products.push({
       id: newId,
-      name, description: desc, category, image, costPrice: cost, price, veg, bestseller, condiments, optionGroups,
+      name, description: desc, category, image, costPrice: cost, price, veg, bestseller, condiments, hiddenCondiments, optionGroups,
       inStock: true
     });
   }
@@ -1854,6 +1860,26 @@ function toggleCondimentPriceInput(checkbox) {
   }
 }
 
+function getBaseCondimentOptions() {
+  return ["Add Onion Filling", "Extra onion", "Green chutney", "Mint chutney", "Raita", "Achaar", "Extra butter", "Extra roti", "Spicy", "Less spicy"];
+}
+
+function removeCondimentOption(button) {
+  const row = button.closest(".checkbox-label");
+  const listDiv = document.getElementById("product-condiments-checklist");
+  const input = row?.querySelector('input[name="p-condiment-opt"]');
+  const name = input?.value || "";
+  if (!row || !listDiv || !name) return;
+
+  const baseNames = getBaseCondimentOptions().map(option => option.toLowerCase());
+  const deleted = JSON.parse(listDiv.dataset.deletedCondiments || "[]");
+  if (baseNames.includes(name.toLowerCase()) && !deleted.some(option => option.toLowerCase() === name.toLowerCase())) {
+    deleted.push(name);
+    listDiv.dataset.deletedCondiments = JSON.stringify(deleted);
+  }
+  row.remove();
+}
+
 function addCustomCondimentOption() {
   const nameInput = document.getElementById("custom-condiment-name");
   const priceInput = document.getElementById("custom-condiment-price");
@@ -1883,6 +1909,9 @@ function addCustomCondimentOption() {
   label.style.gap = "10px";
   label.style.marginBottom = "4px";
   const safeValue = name.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  const deleted = JSON.parse(listDiv.dataset.deletedCondiments || "[]")
+    .filter(option => option.toLowerCase() !== name.toLowerCase());
+  listDiv.dataset.deletedCondiments = JSON.stringify(deleted);
 
   label.innerHTML = `
     <div style="display: flex; align-items: center; gap: 6px;">
@@ -1892,6 +1921,7 @@ function addCustomCondimentOption() {
     <div style="display: flex; align-items: center; gap: 4px;">
       <span style="font-size: 0.75rem; color: var(--color-text-muted);">+₹</span>
       <input type="number" class="form-control" style="width: 60px; padding: 2px 4px; height: 26px; font-size: 0.8rem; margin: 0;" min="0" value="${price}">
+      <button type="button" class="mini-delete-btn" onclick="removeCondimentOption(this)" aria-label="Delete condiment">&times;</button>
     </div>
   `;
   label.querySelector("span").innerText = name;
