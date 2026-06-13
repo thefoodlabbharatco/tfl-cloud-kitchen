@@ -289,6 +289,7 @@ function switchTab(tabId) {
     subbrands: "Sub-Brands & Categorization",
     announcements: "Updates & Offers announcements",
     customization: "Aesthetic Brand Customizer",
+    social: "Instagram Social Media AI",
     admins: "Operations Staff Access",
     settings: "System Operational Settings"
   };
@@ -329,6 +330,9 @@ function renderTabContent(tabId) {
       break;
     case 'customization':
       renderCustomizationForm();
+      break;
+    case 'social':
+      renderSocialTab();
       break;
     case 'admins':
       renderAdminsTable();
@@ -1745,6 +1749,10 @@ function renderSettingsForm() {
   document.getElementById("settings-supabase-toggle").checked = settings.supabaseEnabled || false;
   document.getElementById("settings-supabase-url").value = settings.supabaseUrl || "";
   document.getElementById("settings-supabase-key").value = settings.supabaseKey || "";
+
+  document.getElementById("settings-gemini-key").value = settings.geminiApiKey || "";
+  document.getElementById("settings-instagram-id").value = settings.instagramPageId || "";
+  document.getElementById("settings-instagram-token").value = settings.instagramAccessToken || "";
 }
 
 async function saveSettings(event) {
@@ -1770,6 +1778,10 @@ async function saveSettings(event) {
   settings.supabaseEnabled = document.getElementById("settings-supabase-toggle").checked;
   settings.supabaseUrl = document.getElementById("settings-supabase-url").value.trim();
   settings.supabaseKey = document.getElementById("settings-supabase-key").value.trim();
+
+  settings.geminiApiKey = document.getElementById("settings-gemini-key").value.trim();
+  settings.instagramPageId = document.getElementById("settings-instagram-id").value.trim();
+  settings.instagramAccessToken = document.getElementById("settings-instagram-token").value.trim();
   
   TFL_DB.saveSettings(settings);
   TFL_DB.saveOrders(TFL_DB.getOrders());
@@ -2175,4 +2187,583 @@ async function handleProductImageUpload(input) {
 
 async function handleAdminImageUpload(input, targetInputId, statusId, options = {}) {
   return uploadOptimizedImage(input, targetInputId, statusId, options);
+}
+
+// --- SOCIAL MEDIA MANAGEMENT AI MODULE ---
+
+let selectedSocialPostId = null;
+
+function renderSocialTab() {
+  const drafts = TFL_DB.getSocialDrafts();
+  
+  // Update Stats
+  const totalCount = drafts.length;
+  const pendingCount = drafts.filter(x => x.status === 'draft').length;
+  const approvedCount = drafts.filter(x => x.status === 'approved').length;
+  
+  document.getElementById("stat-social-total").innerText = totalCount;
+  document.getElementById("stat-social-pending").innerText = pendingCount;
+  document.getElementById("stat-social-approved").innerText = approvedCount;
+  
+  // Render Calendar Grid List on the Left
+  const calendarContainer = document.getElementById("social-calendar-list");
+  if (totalCount === 0) {
+    calendarContainer.innerHTML = `
+      <div style="text-align: center; padding: var(--space-xl); color: var(--color-text-muted);">
+        <p style="font-size: 0.85rem; margin-bottom: var(--space-sm);">No posts generated yet.</p>
+        <p style="font-size: 0.75rem; opacity: 0.7;">Click the <strong>'Generate AI Calendar'</strong> button above to create posts automatically using your menu!</p>
+      </div>
+    `;
+    document.getElementById("social-preview-card").style.display = "block";
+    document.getElementById("social-preview-card").innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 350px; text-align: center; color: var(--color-text-muted);">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-instagram" style="margin-bottom: var(--space-md); opacity: 0.4;"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+        <p>No post selected. Generate a calendar first!</p>
+      </div>
+    `;
+    return;
+  }
+  
+  // Group drafts by post_date
+  const grouped = {};
+  drafts.forEach(d => {
+    if (!grouped[d.post_date]) grouped[d.post_date] = [];
+    grouped[d.post_date].push(d);
+  });
+  
+  // Sort dates descending
+  const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+  
+  let html = '';
+  sortedDates.forEach(dateStr => {
+    const posts = grouped[dateStr];
+    // Sort so lunch comes before dinner
+    posts.sort((a, b) => a.time_slot.localeCompare(b.time_slot));
+    
+    // Format date headers beautifully
+    const dateParts = dateStr.split('-');
+    const dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+    const options = { weekday: 'long', month: 'short', day: 'numeric' };
+    const formattedDate = dateObj.toLocaleDateString('en-US', options);
+    
+    html += `
+      <div class="calendar-day-group" style="margin-bottom: var(--space-sm); border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: var(--space-xs);">
+        <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--color-primary); font-weight: 700; margin-bottom: 6px; letter-spacing: 0.5px;">
+          ${formattedDate}
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+    `;
+    
+    posts.forEach(post => {
+      const product = TFL_DB.getProducts().find(p => p.id === post.menu_item_id) || { name: "Featured Item", image: "" };
+      const isActive = selectedSocialPostId === post.id;
+      const isApproved = post.status === 'approved';
+      const slotLabel = post.time_slot === 'lunch' ? '🍱 Lunch Slot' : '🍔 Dinner Slot';
+      
+      html += `
+        <div class="social-slot-item ${isActive ? 'active' : ''}" onclick="selectSocialPost('${post.id}')" 
+             style="display: flex; align-items: center; justify-content: space-between; padding: 10px; border-radius: var(--radius-sm); background-color: ${isActive ? 'rgba(255,107,0,0.1)' : 'rgba(255,255,255,0.03)'}; border: 1px solid ${isActive ? 'var(--color-primary)' : 'rgba(255,255,255,0.05)'}; cursor: pointer; transition: all 0.2s;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="font-size: 1.1rem; width: 24px; text-align: center;">${post.format === 'reel' ? '🎥' : post.format === 'carousel' ? '📁' : '🖼️'}</div>
+            <div>
+              <div style="font-size: 0.8rem; font-weight: 600; color: #fff; line-height: 1.2;">${product.name}</div>
+              <div style="font-size: 0.7rem; color: var(--color-text-muted); margin-top: 2px;">${slotLabel} (${post.format})</div>
+            </div>
+          </div>
+          <span class="badge" style="font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; background-color: ${isApproved ? 'rgba(36,180,126,0.15)' : 'rgba(255,168,0,0.15)'}; color: ${isApproved ? 'var(--color-success)' : 'var(--color-warning)'}; border: 1px solid ${isApproved ? 'var(--color-success)' : 'var(--color-warning)'};">
+            ${isApproved ? 'Approved' : 'Draft'}
+          </span>
+        </div>
+      `;
+    });
+    
+    html += `
+        </div>
+      </div>
+    `;
+  });
+  
+  calendarContainer.innerHTML = html;
+  
+  // Maintain active selection or show default preview state
+  if (selectedSocialPostId) {
+    const stillExists = drafts.some(x => x.id === selectedSocialPostId);
+    if (stillExists) {
+      selectSocialPost(selectedSocialPostId);
+    } else {
+      selectedSocialPostId = null;
+      showDefaultSocialPreview();
+    }
+  } else {
+    showDefaultSocialPreview();
+  }
+}
+
+function showDefaultSocialPreview() {
+  const previewCard = document.getElementById("social-preview-card");
+  previewCard.innerHTML = `
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 350px; text-align: center; color: var(--color-text-muted);">
+      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-instagram" style="margin-bottom: var(--space-md); opacity: 0.4;"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+      <p>Select a scheduled post from the calendar to review, edit, copy, and publish.</p>
+    </div>
+  `;
+}
+
+function selectSocialPost(postId) {
+  selectedSocialPostId = postId;
+  
+  // Visual update of active element in list
+  const slotItems = document.querySelectorAll(".social-slot-item");
+  slotItems.forEach(item => {
+    item.classList.remove("active");
+  });
+  
+  const drafts = TFL_DB.getSocialDrafts();
+  const post = drafts.find(x => x.id === postId);
+  if (!post) return;
+  
+  const product = TFL_DB.getProducts().find(p => p.id === post.menu_item_id) || { name: "Featured Item", image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=100&q=80", description: "" };
+  const isApproved = post.status === 'approved';
+  
+  const previewCard = document.getElementById("social-preview-card");
+  
+  previewCard.innerHTML = `
+    <!-- Card Header -->
+    <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-md); margin-bottom: var(--space-md);">
+      <div>
+        <h4 style="color: #fff; margin-bottom: 4px;">Review Post - ${post.post_date}</h4>
+        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 4px;">
+          <span class="badge" style="font-size: 0.65rem; background-color: rgba(255,107,0,0.15); color: var(--color-primary); border: 1px solid var(--color-primary); text-transform: uppercase;">${post.time_slot} slot</span>
+          <span class="badge" style="font-size: 0.65rem; background-color: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.1); text-transform: uppercase;">${post.format}</span>
+          <span id="post-detail-status-badge" class="badge" style="font-size: 0.65rem; background-color: ${isApproved ? 'rgba(36,180,126,0.15)' : 'rgba(255,168,0,0.15)'}; color: ${isApproved ? 'var(--color-success)' : 'var(--color-warning)'}; border: 1px solid ${isApproved ? 'var(--color-success)' : 'var(--color-warning)'};">
+            ${isApproved ? 'Approved & Ready' : 'Pending Review'}
+          </span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 6px;">
+        <button class="btn btn-danger btn-sm" onclick="deleteSocialDraft('${post.id}')" title="Delete Draft" style="padding: var(--space-xs);">
+          <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+        </button>
+        <button id="btn-approve-post" class="btn ${isApproved ? 'btn-secondary' : 'btn-success'} btn-sm" onclick="toggleApproveSocialDraft('${post.id}')" style="display: flex; align-items: center; gap: 4px; padding: var(--space-xs) var(--space-sm);">
+          <i data-lucide="${isApproved ? 'x-circle' : 'check'}" style="width: 14px; height: 14px;"></i>
+          ${isApproved ? 'Revert to Draft' : 'Approve Post'}
+        </button>
+      </div>
+    </div>
+
+    <!-- Product Feature Box -->
+    <div class="glass-panel" style="display: flex; gap: var(--space-md); padding: var(--space-sm); border-radius: var(--radius-sm); margin-bottom: var(--space-md); background-color: rgba(255,255,255,0.01);">
+      <img src="${product.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=100&q=80'}" style="width: 60px; height: 60px; border-radius: 4px; object-fit: cover; border: 1px solid var(--color-border);">
+      <div style="display: flex; flex-direction: column; justify-content: center;">
+        <div style="font-size: 0.85rem; font-weight: 700; color: #fff;">Featured Product: ${product.name}</div>
+        <div style="font-size: 0.72rem; color: var(--color-text-muted); margin-top: 2px; line-height: 1.3;">${product.description ? product.description.substring(0, 80) + '...' : ''}</div>
+        <div style="font-size: 0.75rem; color: var(--color-primary); font-weight: 600; margin-top: 4px;">Price: ₹${product.price}</div>
+      </div>
+    </div>
+
+    <!-- Editor Fields -->
+    <div style="display: flex; flex-direction: column; gap: var(--space-md);">
+      <div class="form-group">
+        <label class="form-label" style="display: flex; justify-content: space-between; align-items: center; color: #fff; font-weight: 600;">
+          <span>Instagram Caption</span>
+          <button class="btn btn-secondary btn-sm" style="font-size: 0.7rem; padding: 2px 6px; height: auto; display: flex; align-items: center; gap: 2px;" onclick="copySocialText('social-edit-caption', 'Caption')">
+            <i data-lucide="copy" style="width: 10px; height: 10px;"></i> Copy Caption
+          </button>
+        </label>
+        <textarea id="social-edit-caption" class="form-control" rows="4" style="font-size: 0.85rem; line-height: 1.4; font-family: inherit; background-color: #121214; color: #fff;" oninput="saveSocialDraftChange('${post.id}')">${post.caption || ''}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" style="display: flex; justify-content: space-between; align-items: center; color: #fff; font-weight: 600;">
+          <span>Hashtags</span>
+          <button class="btn btn-secondary btn-sm" style="font-size: 0.7rem; padding: 2px 6px; height: auto; display: flex; align-items: center; gap: 2px;" onclick="copySocialText('social-edit-hashtags', 'Hashtags')">
+            <i data-lucide="copy" style="width: 10px; height: 10px;"></i> Copy Hashtags
+          </button>
+        </label>
+        <input type="text" id="social-edit-hashtags" class="form-control" style="font-size: 0.85rem; background-color: #121214; color: #fff;" value="${post.hashtags || ''}" oninput="saveSocialDraftChange('${post.id}')">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" style="display: flex; justify-content: space-between; align-items: center; color: #fff; font-weight: 600;">
+          <span>Reel Script & Visual Storyboard</span>
+          <span style="font-size: 0.75rem; color: var(--color-primary); font-weight: 700; font-family: monospace;">🎵 Audio: ${post.trending_audio || 'Trending Audio'}</span>
+        </label>
+        <textarea id="social-edit-script" class="form-control" rows="3" style="font-size: 0.8rem; font-family: monospace; line-height: 1.4; background-color: #121214; color: #fff;" oninput="saveSocialDraftChange('${post.id}')">${post.reel_script || ''}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" style="display: flex; justify-content: space-between; align-items: center; color: #fff; font-weight: 600;">
+          <span>AI Image Generation Prompt</span>
+          <button class="btn btn-secondary btn-sm" style="font-size: 0.7rem; padding: 2px 6px; height: auto; display: flex; align-items: center; gap: 2px;" onclick="copySocialText('social-edit-prompt', 'Image Prompt')">
+            <i data-lucide="copy" style="width: 10px; height: 10px;"></i> Copy Prompt
+          </button>
+        </label>
+        <textarea id="social-edit-prompt" class="form-control" rows="2" style="font-size: 0.8rem; line-height: 1.4; background-color: #121214; color: #fff;" oninput="saveSocialDraftChange('${post.id}')">${post.image_prompt || ''}</textarea>
+      </div>
+    </div>
+
+    <!-- Actions Section -->
+    <div style="border-top: 1px solid var(--color-border); padding-top: var(--space-md); margin-top: var(--space-md); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 0.75rem; color: var(--color-text-muted);">Publish Status:</span>
+        <span style="font-size: 0.75rem; font-weight: 700; color: ${isApproved ? 'var(--color-success)' : 'var(--color-warning)'};">${isApproved ? 'Ready to post!' : 'Needs approval'}</span>
+      </div>
+      
+      <button class="btn btn-primary" onclick="publishSocialToInstagram('${post.id}')" style="background-color: #e1306c; border-color: #e1306c; display: flex; align-items: center; gap: 6px;">
+        <i data-lucide="instagram" style="width: 14px; height: 14px;"></i> Publish to Instagram
+      </button>
+    </div>
+  `;
+  
+  lucide.createIcons();
+}
+
+function saveSocialDraftChange(postId) {
+  const drafts = TFL_DB.getSocialDrafts();
+  const idx = drafts.findIndex(x => x.id === postId);
+  if (idx === -1) return;
+  
+  const caption = document.getElementById("social-edit-caption").value.trim();
+  const hashtags = document.getElementById("social-edit-hashtags").value.trim();
+  const script = document.getElementById("social-edit-script").value.trim();
+  const prompt = document.getElementById("social-edit-prompt").value.trim();
+  
+  drafts[idx].caption = caption;
+  drafts[idx].hashtags = hashtags;
+  drafts[idx].reel_script = script;
+  drafts[idx].image_prompt = prompt;
+  
+  TFL_DB.saveSocialDrafts(drafts);
+  
+  // Silently trigger background sync to update local storage
+  setTimeout(() => {
+    try {
+      localStorage.setItem("tfl_social_drafts", JSON.stringify(drafts));
+    } catch(e) {}
+  }, 0);
+}
+
+function toggleApproveSocialDraft(postId) {
+  const drafts = TFL_DB.getSocialDrafts();
+  const idx = drafts.findIndex(x => x.id === postId);
+  if (idx === -1) return;
+  
+  const currentStatus = drafts[idx].status;
+  const newStatus = currentStatus === 'approved' ? 'draft' : 'approved';
+  drafts[idx].status = newStatus;
+  
+  TFL_DB.saveSocialDrafts(drafts);
+  renderSocialTab();
+  
+  if (newStatus === 'approved') {
+    TFL_DB.showToast("Social post successfully approved and synced!", "success");
+  } else {
+    TFL_DB.showToast("Post reverted to draft.", "info");
+  }
+}
+
+function deleteSocialDraft(postId) {
+  if (!confirm("Are you sure you want to delete this social media post draft?")) return;
+  
+  const drafts = TFL_DB.getSocialDrafts();
+  const filtered = drafts.filter(x => x.id !== postId);
+  TFL_DB.saveSocialDrafts(filtered);
+  selectedSocialPostId = null;
+  renderSocialTab();
+  TFL_DB.showToast("Draft deleted successfully.", "success");
+}
+
+function copySocialText(elementId, label) {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+  
+  element.select();
+  document.execCommand('copy');
+  
+  // Unselect text selection
+  window.getSelection().removeAllRanges();
+  
+  TFL_DB.showToast(`${label} copied to clipboard! Ready to paste on Instagram safely.`, "success");
+}
+
+async function publishSocialToInstagram(postId) {
+  const settings = TFL_DB.getSettings();
+  const drafts = TFL_DB.getSocialDrafts();
+  const post = drafts.find(x => x.id === postId);
+  if (!post) return;
+  
+  if (post.status !== 'approved') {
+    TFL_DB.showToast("Please approve this post before publishing it to Instagram.", "warning");
+    return;
+  }
+  
+  // 1. Check for official Instagram API integration parameters
+  if (!settings.instagramPageId || !settings.instagramAccessToken) {
+    TFL_DB.showToast("Instagram settings missing! Copied caption and hashtags to clipboard instead. Post manually to avoid bans.", "info");
+    
+    // Copy combined caption and hashtags
+    const combined = `${post.caption}\n\n${post.hashtags}`;
+    const dummy = document.createElement("textarea");
+    document.body.appendChild(dummy);
+    dummy.value = combined;
+    dummy.select();
+    document.execCommand('copy');
+    document.body.removeChild(dummy);
+    
+    alert("⚠️ Instagram Page ID or Meta Access Token not set in settings.\n\nCombined Caption & Hashtags have been copied to your clipboard!\n\nOpen Instagram and paste it to publish safely with 0% ban risk.");
+    return;
+  }
+  
+  // 2. Perform official Meta Content Publishing API calls
+  TFL_DB.showToast("Initiating official Instagram publishing...", "info");
+  
+  const pageId = settings.instagramPageId;
+  const token = settings.instagramAccessToken;
+  const caption = `${post.caption}\n\n${post.hashtags}`;
+  
+  // Find the product image to post
+  const product = TFL_DB.getProducts().find(p => p.id === post.menu_item_id) || { image: "" };
+  const imageUrl = product.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80";
+  
+  try {
+    // Step 1: Create Container
+    const createUrl = `https://graph.facebook.com/v19.0/${pageId}/media?image_url=${encodeURIComponent(imageUrl)}&caption=${encodeURIComponent(caption)}&access_token=${token}`;
+    const resCreate = await fetch(createUrl, { method: 'POST' });
+    if (!resCreate.ok) {
+      const errData = await resCreate.json();
+      throw new Error(errData.error?.message || "Failed to create media container");
+    }
+    const createResult = await resCreate.json();
+    const containerId = createResult.id;
+    
+    TFL_DB.showToast("Media container created. Publishing post...", "info");
+    
+    // Step 2: Publish Container
+    const publishUrl = `https://graph.facebook.com/v19.0/${pageId}/media_publish?creation_id=${containerId}&access_token=${token}`;
+    const resPublish = await fetch(publishUrl, { method: 'POST' });
+    if (!resPublish.ok) {
+      const errData = await resPublish.json();
+      throw new Error(errData.error?.message || "Failed to publish media container");
+    }
+    
+    TFL_DB.showToast("🎉 Post successfully published to Instagram!", "success");
+  } catch (error) {
+    console.error("Meta API Publish Error:", error);
+    TFL_DB.showToast("Publish failed: " + error.message, "error");
+  }
+}
+
+async function triggerSocialGeneration() {
+  const settings = TFL_DB.getSettings();
+  const apiKey = settings.geminiApiKey;
+  if (!apiKey) {
+    TFL_DB.showToast("Missing Gemini API Key! Please configure it in the Settings tab to generate posts.", "error");
+    switchTab('settings');
+    return;
+  }
+  
+  const daysSelect = document.getElementById("social-generate-days");
+  const days = parseInt(daysSelect.value) || 7;
+  const button = document.getElementById("btn-generate-social");
+  
+  // Disable button & show loading state
+  button.disabled = true;
+  const originalText = button.innerHTML;
+  button.innerHTML = `<i data-lucide="loader-2" class="anim-spin" style="width: 14px; height: 14px; margin-right: 6px;"></i> Generating AI Posts...`;
+  lucide.createIcons();
+  
+  try {
+    const products = TFL_DB.getProducts();
+    if (products.length === 0) {
+      throw new Error("No products available to generate posts for. Please add products first.");
+    }
+    
+    // Build products summary for prompt
+    const productsList = products.map(p => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      price: p.price,
+      category: p.category
+    }));
+    
+    const promptText = `
+You are a viral social media manager for "The Food Lab" cloud kitchen in Lucknow, India.
+Generate an Instagram content calendar for the next ${days} days. You MUST generate exactly ${days * 2} posts.
+For each day, you must generate exactly two posts:
+- One 'lunch' slot: targeted at office lunch, thalis, filling rice bowls, or parathas.
+- One 'dinner' slot: targeted at evening snacks, comforting rolls, drinks, combos, and party platters.
+
+For each post, select a real product from the following menu list:
+${JSON.stringify(productsList)}
+
+Instructions:
+1. Tone: Fun, extremely tempting, craving-inducing, and appetizing.
+2. Memes: Integrate popular global/Indian viral meme structures (POV, Nobody, Tell me without telling me, etc.) customized for the dishes. Add relatable references to Lucknow (e.g. comparing to Tunday, Hazratganj strolls, Gomti Nagar evening vibes, the extreme summer heat/cold, or sweet cravings).
+3. Emojis: Do NOT use emojis in captions.
+4. Reel Script: If the format is a reel, write a detailed 15-second step-by-step storyboard and transitions.
+5. Music: Recommend a real trending Instagram song popular in India or globally (such as trending Punjabi tracks by Diljit Dosanjh, AP Dhillon, Karan Aujla, Bollywood remixes, or aesthetic lo-fi audio) and specify transition beat drops.
+`;
+
+    const requestPayload = {
+      contents: [
+        {
+          parts: [
+            {
+              text: promptText
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "ARRAY",
+          items: {
+            type: "OBJECT",
+            properties: {
+              dateOffset: {
+                type: "INTEGER",
+                description: "Day offset. 0 for today, 1 for tomorrow, 2 for day after, etc."
+              },
+              timeSlot: {
+                type: "STRING",
+                enum: ["lunch", "dinner"],
+                description: "Post slot: lunch or dinner."
+              },
+              format: {
+                type: "STRING",
+                enum: ["reel", "carousel", "single image", "story"],
+                description: "Post layout format."
+              },
+              angle: {
+                type: "STRING",
+                description: "A hook or theme for the post."
+              },
+              menuItemId: {
+                type: "STRING",
+                description: "The exact product ID featured from the list provided."
+              },
+              caption: {
+                type: "STRING",
+                description: "The tempting caption containing meme hook. Do NOT use emojis."
+              },
+              hashtags: {
+                type: "STRING",
+                description: "Instagram hashtags, including localized Lucknow ones like #lucknowfoodies, #lucknoweats."
+              },
+              imagePrompt: {
+                type: "STRING",
+                description: "A descriptive prompt for image generation showing the food appetizingly."
+              },
+              reelScript: {
+                type: "STRING",
+                description: "15s step-by-step storyboard and camera movement notes."
+              },
+              trendingAudio: {
+                type: "STRING",
+                description: "Specific real viral global or Indian song name with visual transition markers."
+              }
+            },
+            required: ["dateOffset", "timeSlot", "format", "angle", "menuItemId", "caption", "hashtags", "imagePrompt", "reelScript", "trendingAudio"]
+          }
+        }
+      }
+    };
+    
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestPayload)
+    });
+    
+    if (!response.ok) {
+      const errJson = await response.json();
+      throw new Error(errJson.error?.message || "Gemini API request failed");
+    }
+    
+    const resData = await response.json();
+    const textResponse = resData.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!textResponse) {
+      throw new Error("Empty response from AI engine.");
+    }
+    
+    const generatedPosts = JSON.parse(textResponse);
+    if (!Array.isArray(generatedPosts)) {
+      throw new Error("AI did not return a valid list of posts.");
+    }
+    
+    // Process and insert into local DB
+    const drafts = TFL_DB.getSocialDrafts();
+    const today = new Date();
+    
+    const getLocalDateString = (d) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    
+    generatedPosts.forEach(post => {
+      const targetDate = new Date();
+      targetDate.setDate(today.getDate() + post.dateOffset);
+      const postDateStr = getLocalDateString(targetDate);
+      
+      const uniqueId = `soc-${postDateStr}-${post.timeSlot}`;
+      
+      const newPost = {
+        id: uniqueId,
+        brand: 'cloud_kitchen',
+        post_date: postDateStr,
+        time_slot: post.timeSlot,
+        format: post.format,
+        angle: post.angle,
+        menu_item_id: post.menuItemId,
+        caption: post.caption,
+        hashtags: post.hashtags,
+        image_prompt: post.imagePrompt,
+        reel_script: post.reelScript,
+        trending_audio: post.trendingAudio,
+        status: 'draft',
+        created_at: new Date().toISOString()
+      };
+      
+      // Upsert into drafts
+      const existingIdx = drafts.findIndex(x => x.id === uniqueId);
+      if (existingIdx !== -1) {
+        drafts[existingIdx] = newPost;
+      } else {
+        drafts.push(newPost);
+      }
+    });
+    
+    TFL_DB.saveSocialDrafts(drafts);
+    renderSocialTab();
+    TFL_DB.showToast(`Successfully generated ${generatedPosts.length} posts for the next ${days} days!`, "success");
+    
+    // Automatically select the first generated post to preview
+    if (generatedPosts.length > 0) {
+      const firstDate = getLocalDateString(today);
+      const firstId = `soc-${firstDate}-lunch`;
+      if (drafts.some(x => x.id === firstId)) {
+        selectSocialPost(firstId);
+      } else {
+        selectSocialPost(drafts[drafts.length - 1].id);
+      }
+    }
+    
+    // Force sync to cloud if enabled
+    triggerBackgroundSync();
+  } catch (err) {
+    console.error(err);
+    alert("Generation Failed: " + err.message);
+    TFL_DB.showToast("Failed to generate AI calendar: " + err.message, "error");
+  } finally {
+    button.disabled = false;
+    button.innerHTML = originalText;
+    lucide.createIcons();
+  }
 }

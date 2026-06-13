@@ -80,6 +80,9 @@
         <div class="sidebar-item" onclick="switchTab('customization')" id="tab-customization">
           <i data-lucide="palette"></i> Brand Customization
         </div>
+        <div class="sidebar-item" onclick="switchTab('social')" id="tab-social">
+          <i data-lucide="instagram"></i> Social Media AI
+        </div>
         <div class="sidebar-item" onclick="switchTab('admins')" id="tab-admins">
           <i data-lucide="users"></i> Admin Staff
         </div>
@@ -434,6 +437,94 @@
         </div>
       </section>
 
+      <!-- TAB: SOCIAL MEDIA AUTOMATION -->
+      <section id="section-social" class="tab-panel" style="display: none;">
+        <style>
+          .social-slot-item:hover {
+            background-color: rgba(255,255,255,0.08) !important;
+            border-color: rgba(255,255,255,0.15) !important;
+          }
+          .social-slot-item.active {
+            background-color: rgba(255,107,0,0.1) !important;
+            border-color: var(--color-primary) !important;
+          }
+          .social-slot-item.active:hover {
+            background-color: rgba(255,107,0,0.15) !important;
+          }
+          /* Custom scrollbar for calendar */
+          .glass-panel::-webkit-scrollbar {
+            width: 6px;
+          }
+          .glass-panel::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1);
+          }
+          .glass-panel::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+          }
+          .glass-panel::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.2);
+          }
+        </style>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md); flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h3 style="color: #fff; margin-bottom: 4px;">Instagram Social Media AI</h3>
+            <p style="font-size: 0.8rem; color: var(--color-text-muted);">Plan, generate, and manage your Lucknow kitchen posts using Gemini AI</p>
+          </div>
+          <div style="display: flex; gap: var(--space-sm); align-items: center;">
+            <select id="social-generate-days" class="form-control" style="width: 150px; background-color: #1c1c1e; color: #fff;">
+              <option value="1">1 Day (2 posts)</option>
+              <option value="3">3 Days (6 posts)</option>
+              <option value="7" selected>7 Days (14 posts)</option>
+            </select>
+            <button id="btn-generate-social" class="btn btn-primary" onclick="triggerSocialGeneration()">
+              <i data-lucide="sparkles" style="width: 14px; height: 14px; margin-right: 6px;"></i> Generate AI Calendar
+            </button>
+          </div>
+        </div>
+
+        <!-- STATS ROW -->
+        <div class="dashboard-stats" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: var(--space-lg); display: grid; gap: var(--space-md);">
+          <div class="stat-card glass-panel" style="padding: var(--space-md); border-radius: var(--radius-md); display: flex; flex-direction: column;">
+            <span class="stat-label" style="font-size: 0.8rem; color: var(--color-text-muted);">Total Drafts</span>
+            <span class="stat-value" id="stat-social-total" style="font-size: 1.8rem; font-weight: 700; color: #fff;">0</span>
+          </div>
+          <div class="stat-card glass-panel" style="padding: var(--space-md); border-radius: var(--radius-md); display: flex; flex-direction: column;">
+            <span class="stat-label" style="font-size: 0.8rem; color: var(--color-text-muted);">Pending Approval</span>
+            <span class="stat-value" id="stat-social-pending" style="font-size: 1.8rem; font-weight: 700; color: var(--color-warning);">0</span>
+          </div>
+          <div class="stat-card glass-panel" style="padding: var(--space-md); border-radius: var(--radius-md); display: flex; flex-direction: column;">
+            <span class="stat-label" style="font-size: 0.8rem; color: var(--color-text-muted);">Approved Posts</span>
+            <span class="stat-value" id="stat-social-approved" style="font-size: 1.8rem; font-weight: 700; color: var(--color-success);">0</span>
+          </div>
+        </div>
+
+        <!-- MAIN LAYOUT: CALENDAR GRID VS PREVIEW CARD -->
+        <div class="dashboard-grid" style="display: grid; grid-template-columns: 1.12fr 1.88fr; gap: var(--space-lg); align-items: start; margin-top: var(--space-md);">
+          
+          <!-- LEFT SIDE: CALENDAR GRID OF POSTS -->
+          <div class="glass-panel" style="padding: var(--space-md); border-radius: var(--radius-md); max-height: 600px; overflow-y: auto;">
+            <h4 style="color: #fff; margin-bottom: var(--space-md); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
+              <i data-lucide="calendar" style="width: 16px; height: 16px; color: var(--color-primary);"></i> Scheduled Posts Calendar
+            </h4>
+            <div id="social-calendar-list" style="display: flex; flex-direction: column; gap: var(--space-sm);">
+              <!-- Rendered Dynamically -->
+              <p style="color: var(--color-text-muted); font-size: 0.85rem; text-align: center; padding: var(--space-xl);">
+                No posts generated yet. Click 'Generate AI Calendar' to get started!
+              </p>
+            </div>
+          </div>
+
+          <!-- RIGHT SIDE: DETAILS REVIEW & EDIT CARD -->
+          <div class="glass-panel" id="social-preview-card" style="padding: var(--space-lg); border-radius: var(--radius-md); min-height: 400px;">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 350px; text-align: center; color: var(--color-text-muted);">
+              <i data-lucide="instagram" style="width: 48px; height: 48px; margin-bottom: var(--space-md); opacity: 0.4;"></i>
+              <p>Select a scheduled post from the calendar to review, edit, copy, and publish.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- TAB: SETTINGS MODULE -->
       <section id="section-settings" class="tab-panel" style="display: none;">
         <form id="settings-management-form" onsubmit="saveSettings(event)" class="glass-panel" style="padding: var(--space-lg); border-radius: var(--radius-md); max-width: 700px;">
@@ -575,6 +666,28 @@ create policy "Admin product image update"
 on storage.objects for update
 using (bucket_id = 'product-images')
 with check (bucket_id = 'product-images');</pre>
+          </div>
+
+          <!-- Social Automation and Gemini AI Settings -->
+          <h4 style="color: #fff; margin-top: var(--space-xl); margin-bottom: var(--space-md); border-bottom: 1px solid var(--color-border); padding-bottom: 8px;">
+            AI Social Media & Instagram Configuration
+          </h4>
+          <div class="form-group">
+            <label class="form-label" for="settings-gemini-key">Google Gemini API Key (For Free AI Post Generation)</label>
+            <input type="password" id="settings-gemini-key" class="form-control" placeholder="Enter your Gemini API Key">
+            <span style="font-size: 0.72rem; color: var(--color-text-muted); margin-top: 4px;">
+              Get a free API key from <a href="https://aistudio.google.com/" target="_blank" style="color: var(--color-primary); text-decoration: underline;">Google AI Studio</a>.
+            </span>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="settings-instagram-id">Instagram Business Account ID (Optional)</label>
+              <input type="text" id="settings-instagram-id" class="form-control" placeholder="Your Instagram page ID">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="settings-instagram-token">Meta User Access Token (Optional)</label>
+              <input type="password" id="settings-instagram-token" class="form-control" placeholder="Meta access token starting with EAABw...">
+            </div>
           </div>
           
           <button type="submit" class="btn btn-primary" style="margin-top: var(--space-md);">Save System Settings</button>
