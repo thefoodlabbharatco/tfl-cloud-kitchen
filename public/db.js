@@ -29,7 +29,7 @@ const DEFAULT_SETTINGS = {
   orderRetentionDays: 2,
   maxCompletedOrders: 100,
   geminiApiKey: "",
-  instagramPageId: "",
+  instagramPageId: "17841445547969796",
   instagramAccessToken: ""
 };
 
