@@ -1347,9 +1347,9 @@ body:not(.light-theme) .admin-modal,
 body:not(.light-theme) .login-card,
 body:not(.light-theme) .glass-panel,
 body:not(.light-theme) .sync-banner {
-  background: var(--color-bg-card);
-  color: var(--color-text);
-  border-color: var(--color-border);
+  background: var(--color-bg-card) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
 }
 
 body:not(.light-theme) .sidebar-logo,
