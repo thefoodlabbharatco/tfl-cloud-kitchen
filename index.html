@@ -303,15 +303,9 @@
         <!-- Rendered dynamically by JS -->
       </div>
 
-      <div class="receipt-actions receipt-order-actions" style="grid-template-columns: 1fr;">
-        <button class="btn btn-danger" onclick="startNewOrder()" style="width: 100%;">
-          <i data-lucide="plus-circle"></i> Start New Order
-        </button>
-      </div>
-
       <div class="receipt-primary-actions">
         <button class="btn btn-primary" style="width: 100%;" onclick="sendOrderWhatsApp()">
-          <i data-lucide="message-square"></i> Send Order to Restaurant WhatsApp
+          <i data-lucide="message-square"></i> Resend Order on WhatsApp (if failed or not sent yet)
         </button>
       </div>
 
@@ -320,6 +314,12 @@
         <p><strong>Payment Verification:</strong> Send payment screenshot or payment confirmation on WhatsApp.</p>
         <button class="btn btn-primary" style="width: 100%;" onclick="sendUpiScreenshotWhatsApp()">
           <i data-lucide="image"></i> Send Payment Verification on WhatsApp
+        </button>
+      </div>
+
+      <div class="receipt-actions receipt-order-actions" style="grid-template-columns: 1fr;">
+        <button class="btn btn-danger" onclick="startNewOrder()" style="width: 100%;">
+          <i data-lucide="plus-circle"></i> Start New Order
         </button>
       </div>
 
