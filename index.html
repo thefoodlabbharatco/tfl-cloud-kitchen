@@ -191,6 +191,14 @@
           <span id="cart-grand-total-price" style="color: var(--color-primary);">₹0.00</span>
         </div>
       </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+        <button class="btn btn-danger" onclick="startNewOrder(true)" style="font-size: 0.85rem; padding: 10px 6px;">
+          <i data-lucide="plus-circle" style="width: 14px; height: 14px; display: inline; vertical-align: middle;"></i> Start New Order
+        </button>
+        <button class="btn btn-secondary" onclick="toggleCartPanel(false)" style="font-size: 0.85rem; padding: 10px 6px;">
+          <i data-lucide="edit-3" style="width: 14px; height: 14px; display: inline; vertical-align: middle;"></i> Add / Replace Items
+        </button>
+      </div>
       <button class="btn btn-primary" style="width: 100%;" onclick="openCheckoutPanel()">Proceed to Checkout</button>
     </div>
   </div>
@@ -268,7 +276,15 @@
           </p>
         </div>
         
-        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: var(--space-md);">Place Order</button>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: var(--space-md); margin-bottom: 10px;">
+          <button type="button" class="btn btn-danger" onclick="startNewOrder(true)" style="font-size: 0.85rem; padding: 10px 6px;">
+            <i data-lucide="plus-circle" style="width: 14px; height: 14px; display: inline; vertical-align: middle;"></i> Start New Order
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="goBackToCartFromCheckout()" style="font-size: 0.85rem; padding: 10px 6px;">
+            <i data-lucide="edit-3" style="width: 14px; height: 14px; display: inline; vertical-align: middle;"></i> Add / Replace Items
+          </button>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Place Order</button>
       </form>
     </div>
   </div>
@@ -287,12 +303,9 @@
         <!-- Rendered dynamically by JS -->
       </div>
 
-      <div class="receipt-actions receipt-order-actions">
-        <button class="btn btn-danger" onclick="startNewOrder()">
+      <div class="receipt-actions receipt-order-actions" style="grid-template-columns: 1fr;">
+        <button class="btn btn-danger" onclick="startNewOrder()" style="width: 100%;">
           <i data-lucide="plus-circle"></i> Start New Order
-        </button>
-        <button class="btn btn-success" onclick="closeReceiptModal()">
-          <i data-lucide="edit-3"></i> Add / Modify Items
         </button>
       </div>
 

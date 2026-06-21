@@ -1334,19 +1334,29 @@ function openReceiptModal(order) {
 }
 
 function closeReceiptModal() {
+  currentReceiptOrder = null;
   document.getElementById("receipt-modal").classList.remove("active");
   document.getElementById("modal-backdrop").classList.remove("active");
   updateCartDisplay();
 }
 
-function startNewOrder() {
+function startNewOrder(confirmFirst = false) {
+  if (confirmFirst && cart.length > 0) {
+    if (!confirm("Are you sure you want to discard this order and start a new one?")) {
+      return;
+    }
+  }
   currentReceiptOrder = null;
   cart = [];
   sessionStorage.removeItem("tfl_customer_cart");
   updateCartDisplay();
   renderProducts();
-  document.getElementById("receipt-modal").classList.remove("active");
-  document.getElementById("modal-backdrop").classList.remove("active");
+  closeAllPanels();
+}
+
+function goBackToCartFromCheckout() {
+  toggleCheckoutPanel(false);
+  toggleCartPanel(true);
 }
 
 // Recalculates all pricing variables for an order during post-checkout edits
