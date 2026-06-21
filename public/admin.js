@@ -1811,6 +1811,12 @@ function renderSettingsForm() {
   document.getElementById("settings-upi-id").value = settings.upiId || "";
   document.getElementById("settings-upi-qr").value = settings.qrImageUrl || "";
   
+  const qrStatus = document.getElementById("settings-upi-qr-status");
+  if (qrStatus) {
+    qrStatus.style.display = "none";
+    qrStatus.innerText = "";
+  }
+  
   document.getElementById("settings-sheet-toggle").checked = settings.googleSheetEnabled;
   document.getElementById("settings-sheet-url").value = settings.googleSheetUrl || "";
   document.getElementById("settings-supabase-toggle").checked = settings.supabaseEnabled || false;

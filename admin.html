@@ -504,8 +504,15 @@
               <input type="text" id="settings-upi-id" class="form-control" placeholder="e.g. merchant@upi" required>
             </div>
             <div class="form-group">
-              <label class="form-label" for="settings-upi-qr">UPI QR Image URL</label>
-              <input type="text" id="settings-upi-qr" class="form-control" placeholder="URL of your payment QR code" required>
+              <label class="form-label" for="settings-upi-qr">UPI QR Image URL *</label>
+              <div class="image-upload-row">
+                <input type="text" id="settings-upi-qr" class="form-control" placeholder="URL of your payment QR code" required>
+                <label class="btn btn-secondary image-upload-btn">
+                  <i data-lucide="upload" style="width: 14px; height: 14px;"></i> Upload
+                  <input type="file" accept="image/*" style="display: none;" onchange="handleAdminImageUpload(this, 'settings-upi-qr', 'settings-upi-qr-status', { maxWidth: 800, maxHeight: 800, quality: 0.85, prefix: 'upi-qr' })">
+                </label>
+              </div>
+              <div id="settings-upi-qr-status" style="font-size: 0.72rem; color: var(--color-success); margin-top: 4px; display: none;"></div>
             </div>
           </div>
 
