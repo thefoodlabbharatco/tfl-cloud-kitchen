@@ -713,10 +713,8 @@ function openAddonsModal(product) {
         card.className = "pairing-card";
         
         const vegClass = pairedProd.veg ? "veg" : "nonveg";
-        
         const inCartQty = getCartProductQty(pairedProd.id);
-        const btnText = inCartQty > 0 ? `Added (${inCartQty})` : `ADD <span style="font-size:0.65rem; vertical-align: middle;">+</span>`;
-        const btnClass = inCartQty > 0 ? "pairing-add-btn added" : "pairing-add-btn";
+        const actionContainerId = `pairing-action-${pairedProd.id}`;
         
         card.innerHTML = `
           <div class="pairing-img-container">
@@ -725,7 +723,9 @@ function openAddonsModal(product) {
           </div>
           <div class="pairing-name" title="${pairedProd.name}">${pairedProd.name}</div>
           <div class="pairing-price">₹${pairedProd.price}</div>
-          <button class="${btnClass}" onclick="addPairedProductToCart('${pairedProd.id}')">${btnText}</button>
+          <div id="${actionContainerId}" style="width: 100%; margin-top: auto; display: flex; align-items: center; justify-content: center;">
+            ${getPairingActionBtnHtml(pairedProd.id, inCartQty)}
+          </div>
         `;
         pairingsList.appendChild(card);
       });
@@ -760,32 +760,35 @@ function addPairedProductToCart(pairedProductId) {
   }
 }
 
+function getPairingActionBtnHtml(productId, qty) {
+  if (qty > 0) {
+    return `
+      <div class="pairing-qty-wrapper">
+        <button type="button" onclick="handleProductDecrement('${productId}')">-</button>
+        <span class="pairing-qty-qty">${qty}</span>
+        <button type="button" onclick="addPairedProductToCart('${productId}')">+</button>
+      </div>
+    `;
+  } else {
+    return `
+      <button type="button" class="pairing-add-btn" onclick="addPairedProductToCart('${productId}')">
+        ADD <span style="font-size:0.65rem; vertical-align: middle;">+</span>
+      </button>
+    `;
+  }
+}
+
 function updatePairingsDisplay() {
   if (!selectedProductForAddons) return;
-  const pairingsList = document.getElementById("addon-pairings-list");
-  if (!pairingsList) return;
-  
   const pairings = selectedProductForAddons.pairings || [];
   const allProducts = TFL_DB.getProducts();
-  const buttons = pairingsList.querySelectorAll(".pairing-add-btn");
   
-  let btnIdx = 0;
   pairings.forEach(pId => {
-    const pairedProd = allProducts.find(p => p.id === pId && !p.unlisted && p.inStock);
-    if (!pairedProd) return;
-    
-    const btn = buttons[btnIdx];
-    if (btn) {
-      const inCartQty = getCartProductQty(pairedProd.id);
-      if (inCartQty > 0) {
-        btn.innerText = `Added (${inCartQty})`;
-        btn.className = "pairing-add-btn added";
-      } else {
-        btn.innerHTML = `ADD <span style="font-size:0.65rem; vertical-align: middle;">+</span>`;
-        btn.className = "pairing-add-btn";
-      }
+    const container = document.getElementById(`pairing-action-${pId}`);
+    if (container) {
+      const inCartQty = getCartProductQty(pId);
+      container.innerHTML = getPairingActionBtnHtml(pId, inCartQty);
     }
-    btnIdx++;
   });
 }
 
@@ -919,6 +922,7 @@ function updateCartDisplay() {
       stickyPanel.style.display = "none";
     }
     lucide.createIcons();
+    updatePairingsDisplay();
     return;
   }
 
@@ -964,6 +968,7 @@ function updateCartDisplay() {
   
   renderCartItems();
   lucide.createIcons();
+  updatePairingsDisplay();
 }
 
 // Render Items inside Slide over
