@@ -2170,3 +2170,64 @@ body:not(.light-theme) .pairing-qty-wrapper button:hover {
 body:not(.light-theme) .pairing-qty-qty {
   color: #24b47e;
 }
+
+/* --- STRIKE-THROUGH DISCOUNT PRICING --- */
+.product-price-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.product-original-price {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.product-price {
+  font-size: 1.15rem !important;
+  font-weight: 800 !important;
+  color: var(--color-text) !important;
+}
+
+body:not(.light-theme) .product-price {
+  color: #fff !important;
+}
+
+.product-save-badge {
+  background-color: var(--color-danger);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  display: inline-block;
+}
+
+.pairing-price-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+.pairing-original-price {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  font-weight: 500;
+}
+
+.pairing-price {
+  font-size: 0.72rem;
+  color: var(--color-primary);
+  font-weight: 700;
+  margin-bottom: 0 !important;
+}

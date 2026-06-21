@@ -423,7 +423,9 @@ function renderProducts() {
           <p class="product-desc">${p.description}</p>
         </div>
         <div class="product-price-row">
+          <span class="product-original-price">₹${Math.round(p.price * 1.20)}</span>
           <span class="product-price">₹${p.price}</span>
+          <span class="product-save-badge">SAVE</span>
         </div>
       </div>
       <div class="product-img-container">
@@ -740,7 +742,10 @@ function openAddonsModal(product) {
             <img src="${pairedProd.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=200&q=80'}" alt="${pairedProd.name}">
           </div>
           <div class="pairing-name" title="${pairedProd.name}">${pairedProd.name}</div>
-          <div class="pairing-price">₹${pairedProd.price}</div>
+          <div class="pairing-price-container">
+            <span class="pairing-original-price">₹${Math.round(pairedProd.price * 1.20)}</span>
+            <span class="pairing-price">₹${pairedProd.price}</span>
+          </div>
           <div id="${actionContainerId}" style="width: 100%; margin-top: auto; display: flex; align-items: center; justify-content: center;">
             ${getPairingActionBtnHtml(pairedProd.id, inCartQty)}
           </div>
