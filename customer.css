@@ -1975,7 +1975,8 @@ body.light-theme .install-app-btn:hover {
   overflow-x: auto;
   padding: 8px 4px 14px 4px;
   scrollbar-width: none;
-  justify-content: safe center;
+  justify-content: flex-start;
+  -webkit-overflow-scrolling: touch;
 }
 .pairings-scroll-row::-webkit-scrollbar {
   display: none;
