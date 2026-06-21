@@ -495,7 +495,7 @@
 
 .custom-condiment-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 96px auto;
+  grid-template-columns: minmax(0, 1fr) 80px 80px auto;
   gap: 8px;
   margin-top: 10px;
   align-items: stretch;

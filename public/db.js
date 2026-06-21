@@ -52,10 +52,10 @@ const DEFAULT_PRODUCTS = [
     bestseller: true,
     inStock: true,
     condiments: [
-      { name: "Add Onion Filling", price: 0 },
-      { name: "Extra butter", price: 10 },
-      { name: "Achaar", price: 0 },
-      { name: "Green chutney", price: 0 }
+      { name: "Add Onion Filling", price: 0, costPrice: 2 },
+      { name: "Extra butter", price: 10, costPrice: 4 },
+      { name: "Achaar", price: 0, costPrice: 1 },
+      { name: "Green chutney", price: 0, costPrice: 1 }
     ]
   },
   {
@@ -70,11 +70,11 @@ const DEFAULT_PRODUCTS = [
     bestseller: false,
     inStock: true,
     condiments: [
-      { name: "Add Onion Filling", price: 0 },
-      { name: "Extra butter", price: 10 },
-      { name: "Raita", price: 15 },
-      { name: "Mint chutney", price: 0 },
-      { name: "Spicy", price: 0 }
+      { name: "Add Onion Filling", price: 0, costPrice: 2 },
+      { name: "Extra butter", price: 10, costPrice: 4 },
+      { name: "Raita", price: 15, costPrice: 6 },
+      { name: "Mint chutney", price: 0, costPrice: 1 },
+      { name: "Spicy", price: 0, costPrice: 0 }
     ]
   },
   {
@@ -89,10 +89,10 @@ const DEFAULT_PRODUCTS = [
     bestseller: true,
     inStock: true,
     condiments: [
-      { name: "Extra onion", price: 5 },
-      { name: "Raita", price: 15 },
-      { name: "Spicy", price: 0 },
-      { name: "Less spicy", price: 0 }
+      { name: "Extra onion", price: 5, costPrice: 2 },
+      { name: "Raita", price: 15, costPrice: 6 },
+      { name: "Spicy", price: 0, costPrice: 0 },
+      { name: "Less spicy", price: 0, costPrice: 0 }
     ]
   },
   {
@@ -107,9 +107,9 @@ const DEFAULT_PRODUCTS = [
     bestseller: false,
     inStock: true,
     condiments: [
-      { name: "Extra butter", price: 10 },
-      { name: "Achaar", price: 0 },
-      { name: "Green chutney", price: 0 }
+      { name: "Extra butter", price: 10, costPrice: 4 },
+      { name: "Achaar", price: 0, costPrice: 1 },
+      { name: "Green chutney", price: 0, costPrice: 1 }
     ]
   },
   {
@@ -124,10 +124,10 @@ const DEFAULT_PRODUCTS = [
     bestseller: true,
     inStock: true,
     condiments: [
-      { name: "Extra butter", price: 10 },
-      { name: "Extra roti", price: 12 },
-      { name: "Raita", price: 15 },
-      { name: "Achaar", price: 0 }
+      { name: "Extra butter", price: 10, costPrice: 4 },
+      { name: "Extra roti", price: 12, costPrice: 5 },
+      { name: "Raita", price: 15, costPrice: 6 },
+      { name: "Achaar", price: 0, costPrice: 1 }
     ]
   },
   {
@@ -142,8 +142,8 @@ const DEFAULT_PRODUCTS = [
     bestseller: false,
     inStock: true,
     condiments: [
-      { name: "Spicy", price: 0 },
-      { name: "Less spicy", price: 0 }
+      { name: "Spicy", price: 0, costPrice: 0 },
+      { name: "Less spicy", price: 0, costPrice: 0 }
     ]
   },
   {
@@ -171,8 +171,8 @@ const DEFAULT_PRODUCTS = [
     bestseller: true,
     inStock: true,
     condiments: [
-      { name: "Extra butter", price: 10 },
-      { name: "Achaar", price: 0 }
+      { name: "Extra butter", price: 10, costPrice: 4 },
+      { name: "Achaar", price: 0, costPrice: 1 }
     ]
   },
   {
@@ -187,9 +187,9 @@ const DEFAULT_PRODUCTS = [
     bestseller: true,
     inStock: true,
     condiments: [
-      { name: "Extra cheese sauce", price: 20 },
-      { name: "Sour cream dip", price: 15 },
-      { name: "Jalapeños", price: 10 }
+      { name: "Extra cheese sauce", price: 20, costPrice: 8 },
+      { name: "Sour cream dip", price: 15, costPrice: 5 },
+      { name: "Jalapeños", price: 10, costPrice: 3 }
     ]
   }
 ];

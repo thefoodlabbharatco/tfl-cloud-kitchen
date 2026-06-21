@@ -661,12 +661,13 @@ with check (bucket_id = 'product-images');</pre>
           <div class="custom-condiment-row">
             <input type="text" id="custom-condiment-name" class="form-control" placeholder="New condiment name">
             <input type="number" id="custom-condiment-price" class="form-control" min="0" value="0" placeholder="Price">
+            <input type="number" id="custom-condiment-cost" class="form-control" min="0" value="0" placeholder="Cost">
             <button type="button" class="btn btn-secondary" onclick="addCustomCondimentOption()">
               <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
               Add
             </button>
           </div>
-          <p class="form-hint">Keep price 0 for free add-ons. Paid add-ons can use any price.</p>
+          <p class="form-hint">Keep selling price 0 for free add-ons. Cost price is used for internal profit calculations.</p>
         </div>
         <div class="form-group">
           <label class="form-label">Radio Choice Groups</label>

@@ -399,7 +399,18 @@ function renderDashboard() {
     order.items.forEach(item => {
       const origProd = products.find(p => p.id === item.id);
       const itemCostPrice = origProd ? (origProd.costPrice || 0) : 0;
-      orderCost += itemCostPrice * item.quantity;
+      let itemCostTotal = itemCostPrice * item.quantity;
+      if (item.condiments && Array.isArray(item.condiments) && origProd && origProd.condiments) {
+        item.condiments.forEach(c => {
+          const cName = typeof c === 'object' ? c.name : c;
+          const cQty = typeof c === 'object' ? (c.quantity || 1) : 1;
+          const origCond = origProd.condiments.find(oc => oc.name === cName);
+          if (origCond) {
+            itemCostTotal += (origCond.costPrice || 0) * cQty;
+          }
+        });
+      }
+      orderCost += itemCostTotal;
     });
     totalCost += orderCost;
   });
@@ -539,7 +550,18 @@ function renderOrdersTable() {
     order.items.forEach(item => {
       const origProd = products.find(p => p.id === item.id);
       const c = origProd ? (origProd.costPrice || 0) : 0;
-      orderCost += c * item.quantity;
+      let itemCostTotal = c * item.quantity;
+      if (item.condiments && Array.isArray(item.condiments) && origProd && origProd.condiments) {
+        item.condiments.forEach(cond => {
+          const cName = typeof cond === 'object' ? cond.name : cond;
+          const cQty = typeof cond === 'object' ? (cond.quantity || 1) : 1;
+          const origCond = origProd.condiments.find(oc => oc.name === cName);
+          if (origCond) {
+            itemCostTotal += (origCond.costPrice || 0) * cQty;
+          }
+        });
+      }
+      orderCost += itemCostTotal;
     });
     const orderProfit = order.grandTotal - orderCost;
     
@@ -903,7 +925,18 @@ function exportOrdersCSV() {
     o.items.forEach(item => {
       const origProd = products.find(p => p.id === item.id);
       const itemCostPrice = origProd ? (origProd.costPrice || 0) : 0;
-      orderCost += itemCostPrice * item.quantity;
+      let itemCostTotal = itemCostPrice * item.quantity;
+      if (item.condiments && Array.isArray(item.condiments) && origProd && origProd.condiments) {
+        item.condiments.forEach(c => {
+          const cName = typeof c === 'object' ? c.name : c;
+          const cQty = typeof c === 'object' ? (c.quantity || 1) : 1;
+          const origCond = origProd.condiments.find(oc => oc.name === cName);
+          if (origCond) {
+            itemCostTotal += (origCond.costPrice || 0) * cQty;
+          }
+        });
+      }
+      orderCost += itemCostTotal;
     });
     
     const revenue = o.grandTotal;
@@ -1049,7 +1082,7 @@ function renderProductsTable() {
       : '';
       
     const allowedConds = p.condiments && p.condiments.length > 0 
-      ? p.condiments.map(c => typeof c === 'object' ? `${c.name} (+₹${c.price})` : c).join(", ") 
+      ? p.condiments.map(c => typeof c === 'object' ? `${c.name} (Sell: +₹${c.price}, Cost: +₹${c.costPrice || 0})` : c).join(", ") 
       : 'None';
       
     const profit = p.price - p.costPrice;
@@ -1191,8 +1224,10 @@ function openProductModal(productId = null) {
         <span style="font-size: 0.78rem;">${c}</span>
       </div>
       <div style="display: flex; align-items: center; gap: 4px;">
-        <span style="font-size: 0.75rem; color: var(--color-text-muted);">+₹</span>
-        <input type="number" name="p-condiment-price-${c.replace(/\s+/g, '_')}" class="form-control" style="width: 60px; padding: 2px 4px; height: 26px; font-size: 0.8rem; margin: 0;" min="0" value="0" disabled>
+        <span style="font-size: 0.75rem; color: var(--color-text-muted);" title="Selling Price">S:</span>
+        <input type="number" name="p-condiment-price-${c.replace(/\s+/g, '_')}" class="form-control condiment-price-input" style="width: 50px; padding: 2px 4px; height: 26px; font-size: 0.8rem; margin: 0;" min="0" value="0" disabled placeholder="Price">
+        <span style="font-size: 0.75rem; color: var(--color-text-muted);" title="Cost Price">C:</span>
+        <input type="number" name="p-condiment-cost-${c.replace(/\s+/g, '_')}" class="form-control condiment-cost-input" style="width: 50px; padding: 2px 4px; height: 26px; font-size: 0.8rem; margin: 0;" min="0" value="0" disabled placeholder="Cost">
         <button type="button" class="mini-delete-btn" onclick="removeCondimentOption(this)" aria-label="Delete condiment">&times;</button>
       </div>
     `;
@@ -1201,6 +1236,7 @@ function openProductModal(productId = null) {
 
   document.getElementById("custom-condiment-name").value = "";
   document.getElementById("custom-condiment-price").value = 0;
+  document.getElementById("custom-condiment-cost").value = 0;
   document.getElementById("custom-choice-group-name").value = "";
   document.getElementById("custom-choice-option-1").value = "";
   document.getElementById("custom-choice-option-2").value = "";
@@ -1222,16 +1258,21 @@ function openProductModal(productId = null) {
     document.getElementById("p-veg").checked = product.veg;
     document.getElementById("p-bestseller").checked = product.bestseller;
     
-    // Check checkboxes and set prices
+    // Check checkboxes and set prices/costs
     if (product.condiments) {
       document.querySelectorAll('input[name="p-condiment-opt"]').forEach(cb => {
         const found = product.condiments.find(c => (typeof c === 'object' ? c.name : c) === cb.value);
         if (found) {
           cb.checked = true;
-          const priceInput = cb.closest(".checkbox-label")?.querySelector('input[type="number"]');
+          const priceInput = cb.closest(".checkbox-label")?.querySelector('.condiment-price-input');
           if (priceInput) {
             priceInput.disabled = false;
             priceInput.value = typeof found === 'object' ? found.price : 0;
+          }
+          const costInput = cb.closest(".checkbox-label")?.querySelector('.condiment-cost-input');
+          if (costInput) {
+            costInput.disabled = false;
+            costInput.value = typeof found === 'object' ? (found.costPrice || 0) : 0;
           }
         }
       });
@@ -1246,7 +1287,7 @@ function openProductModal(productId = null) {
     syncProductCategorySelection(selectCategory);
     document.getElementById("p-profit-margin").innerText = "₹0.00";
     document.getElementById("p-image-status").style.display = "none";
-    document.querySelectorAll('input[name^="p-condiment-price-"]').forEach(inp => {
+    document.querySelectorAll('input[name^="p-condiment-price-"], input[name^="p-condiment-cost-"]').forEach(inp => {
       inp.disabled = true;
       inp.value = 0;
     });
@@ -1280,9 +1321,11 @@ async function handleProductSubmit(event) {
   const hiddenCondiments = JSON.parse(condimentsListEl?.dataset.deletedCondiments || "[]");
   const condiments = Array.from(checkedBoxes).map(cb => {
     const name = cb.value;
-    const priceInput = cb.closest(".checkbox-label")?.querySelector('input[type="number"]');
+    const priceInput = cb.closest(".checkbox-label")?.querySelector('.condiment-price-input');
     const price = priceInput ? (parseFloat(priceInput.value) || 0) : 0;
-    return { name, price };
+    const costInput = cb.closest(".checkbox-label")?.querySelector('.condiment-cost-input');
+    const costPrice = costInput ? (parseFloat(costInput.value) || 0) : 0;
+    return { name, price, costPrice };
   });
   const optionGroups = Array.from(document.querySelectorAll("#product-choice-groups-list .choice-group-card")).map(card => ({
     name: card.querySelector(".choice-group-title-input")?.value.trim() || "",
@@ -1884,12 +1927,14 @@ function showTemporaryToast(message) {
 }
 
 function toggleCondimentPriceInput(checkbox) {
-  const priceInput = checkbox.closest(".checkbox-label")?.querySelector('input[type="number"]');
-  if (priceInput) {
-    priceInput.disabled = !checkbox.checked;
-    if (!checkbox.checked) {
-      priceInput.value = 0;
-    }
+  const inputs = checkbox.closest(".checkbox-label")?.querySelectorAll('input[type="number"]');
+  if (inputs) {
+    inputs.forEach(inp => {
+      inp.disabled = !checkbox.checked;
+      if (!checkbox.checked) {
+        inp.value = 0;
+      }
+    });
   }
 }
 
@@ -1916,8 +1961,10 @@ function removeCondimentOption(button) {
 function addCustomCondimentOption() {
   const nameInput = document.getElementById("custom-condiment-name");
   const priceInput = document.getElementById("custom-condiment-price");
+  const costInput = document.getElementById("custom-condiment-cost");
   const name = (nameInput?.value || "").trim();
   const price = parseFloat(priceInput?.value || "0") || 0;
+  const cost = parseFloat(costInput?.value || "0") || 0;
   const listDiv = document.getElementById("product-condiments-checklist");
 
   if (!name) {
@@ -1952,8 +1999,10 @@ function addCustomCondimentOption() {
       <span style="font-size: 0.78rem;"></span>
     </div>
     <div style="display: flex; align-items: center; gap: 4px;">
-      <span style="font-size: 0.75rem; color: var(--color-text-muted);">+₹</span>
-      <input type="number" class="form-control" style="width: 60px; padding: 2px 4px; height: 26px; font-size: 0.8rem; margin: 0;" min="0" value="${price}">
+      <span style="font-size: 0.75rem; color: var(--color-text-muted);">S:</span>
+      <input type="number" name="p-condiment-price-${safeValue.replace(/\s+/g, '_')}" class="form-control condiment-price-input" style="width: 50px; padding: 2px 4px; height: 26px; font-size: 0.8rem; margin: 0;" min="0" value="${price}">
+      <span style="font-size: 0.75rem; color: var(--color-text-muted);">C:</span>
+      <input type="number" name="p-condiment-cost-${safeValue.replace(/\s+/g, '_')}" class="form-control condiment-cost-input" style="width: 50px; padding: 2px 4px; height: 26px; font-size: 0.8rem; margin: 0;" min="0" value="${cost}">
       <button type="button" class="mini-delete-btn" onclick="removeCondimentOption(this)" aria-label="Delete condiment">&times;</button>
     </div>
   `;
