@@ -28,6 +28,7 @@ We have implemented support for adding and editing **Perfect Pairings** (cross-s
 - Added a **Perfect Pairings (Upsell Suggestions)** checklists section in the admin product modal (`admin.html`).
 - Modified `openProductModal()` in `admin.js` to render checkboxes for all other formulated products (excluding the current one itself) and mark active pairings checked.
 - Modified `handleProductSubmit()` to collect selected pairings checkboxes and save them under the `pairings` array property of the product.
+- **Formulation Condiments Layout Refactoring**: Restructured the condiments checklist items inside the admin modal from a cramped grid row layout to a vertical flex-column card layout. The top half displays the checkbox + name with maximum breathing room (preventing text wrapping), while the bottom half aligns selling price, cost price, and delete buttons horizontally with customized styling, a divider, and theme overrides.
 
 ---
 
