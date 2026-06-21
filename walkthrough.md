@@ -1,37 +1,30 @@
-# Walkthrough - Removal of Instagram Social Media AI Automation
+# Walkthrough - Condiment Costs and Pricing Integration
 
-We have completely removed the experimental browser-based Instagram Social Media AI post generation, calendar scheduling, and publishing features from the project codebase. The application has been restored to its core cloud kitchen operational features.
+We have implemented support for adding and editing cost and selling prices for all condiments (both free and paid) in the cloud kitchen manager dashboard. These values are now fully integrated into overall dashboard KPIs (revenue, cost, net profit), individual order profit displays, and the financial CSV exports.
 
 ---
 
-## 🧹 Changes Made
+## 🧹 Modifications Summary
 
-### 1. Admin Dashboard UI (`admin.html`)
-- **Removed Sidebar Menu Link**: The "Social Media AI" tab containing the Instagram SVG icon has been removed from the navigation menu.
-- **Removed Tab Panel Content**: The `#section-social` HTML panel (including custom calendar scrollbar styles, day selection dropdowns, visual calendar grid, and review cards) has been completely deleted.
-- **Removed Settings Configuration Fields**: The "AI Social Media & Instagram Configuration" settings section (including the Gemini API Key input, Instagram Business Account ID input, and Meta User Access Token input) has been removed from the settings panel.
+### 1. Default Database Seed (`db.js`)
+- Updated default condiments list on the 9 default products in `DEFAULT_PRODUCTS` to include a logical `costPrice` field:
+  - Free condiments (e.g., "Add Onion Filling", "Achaar", "Green chutney", "Mint chutney") have a cost price of ₹1 or ₹2.
+  - Paid condiments (e.g., "Extra butter", "Raita", "Extra roti", "Jalapeños") have a cost price lower than their selling price.
 
-### 2. Admin Dashboard Logic (`admin.js`)
-- **Removed Tab Switch Mapping**: Deleted the `social` key mapping from `titleMap` in `switchTab`.
-- **Removed Render Case**: Removed `case 'social'` which was responsible for calling `renderSocialTab()` inside `renderTabContent`.
-- **Removed Settings Population**: Deleted assignments loading Gemini Key, Instagram ID, and Meta Token values from local storage/db settings into the DOM inputs.
-- **Removed Settings Save Logic**: Removed assignments saving DOM input values for the social settings back to the settings database object.
-- **Deleted Social Media Module**: Completely deleted the bottom JavaScript module containing the controller functions:
-  - `renderSocialTab()`
-  - `showDefaultSocialPreview()`
-  - `selectSocialPost()`
-  - `saveSocialDraftChange()`
-  - `toggleApproveSocialDraft()`
-  - `deleteSocialDraft()`
-  - `copySocialText()`
-  - `publishSocialToInstagram()`
-  - `triggerSocialGeneration()`
+### 2. Admin HTML & CSS Layouts (`admin.html` and `admin.css`)
+- Added a cost price input field next to the selling price field in the custom condiment entry row in `admin.html`.
+- Updated the grid layout in `admin.css` (`grid-template-columns: minmax(0, 1fr) 80px 80px auto;`) to neatly align Name, Selling Price, Cost Price, and Add buttons.
 
-### 3. Caching & Database Settings (`db.js`)
-- **Removed Default Settings Keys**: Deleted `geminiApiKey`, `instagramPageId`, and `instagramAccessToken` from the `DEFAULT_SETTINGS` dictionary.
-- **Removed Cache Initializers**: Deleted checks initializing and pre-warming `"social_drafts"` keys in local storage inside `init()`.
-- **Removed Database Accessors**: Deleted `getSocialDrafts()` and `saveSocialDrafts()` helper methods from the `TFL_DB` object.
-- **Removed Supabase Sync Binding**: Removed `"social_drafts"` from the `metadataRows` mapping array inside `syncToSupabase()`, preventing metadata synchronization for draft posts.
+### 3. Admin Dashboard Logic (`admin.js`)
+- **Checklist Input Controls**: Updated the product modal condiments checklist to render separate inputs for Selling Price (`S:`) and Cost Price (`C:`).
+- **Edit Mode Population**: Modified edit-mode loading logic to load both `price` and `costPrice` values into their respective checklist inputs from the product data.
+- **Form Submission**: Updated `handleProductSubmit` to collect both values and save them as `{ name, price, costPrice }` for each condiment.
+- **Custom Condiments Addition**: Updated `addCustomCondimentOption()` to read both the custom price and cost inputs and render the option checkbox with separate inputs.
+- **Toggle State Binding**: Updated `toggleCondimentPriceInput` to enable/disable both price and cost inputs when checking/unchecking options.
+- **Dashboard Profit KPI**: Integrated condiment costs into overall dashboard revenue/cost calculations by looking up individual condiment cost prices from the original product configuration.
+- **Order Card Transparency**: Included condiment cost values in the order card cost details.
+- **CSV Export**: Updated the order cost calculation loop in CSV exports to aggregate condiment cost prices, ensuring accurate net profit values in exported financial sheets.
+- **Menu Table allowed condiments**: Updated the condiments list display to show both selling and cost prices (e.g., `Extra butter (Sell: +₹10, Cost: +₹4)`).
 
 ---
 
@@ -43,4 +36,4 @@ We have completely removed the experimental browser-based Instagram Social Media
    - Static pages generation was completed successfully:
      - `/` (prerendered)
      - `/admin` (prerendered)
-3. **Git Cleanliness**: Staged and committed only the modified files (`admin.html`, `admin.js`, `db.js`, `public/admin.js`, `public/db.js`), and successfully pushed to `main`.
+3. **Git Cleanliness**: Staged and committed only the modified files (`admin.css`, `admin.html`, `admin.js`, `db.js`, `public/admin.css`, `public/admin.js`, `public/db.js`), and successfully pushed to `main`.
