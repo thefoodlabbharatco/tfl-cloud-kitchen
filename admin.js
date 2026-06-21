@@ -1212,12 +1212,6 @@ function openProductModal(productId = null) {
   condimentsList.forEach(c => {
     const label = document.createElement("label");
     label.className = "checkbox-label";
-    label.style.display = "flex";
-    label.style.justifyContent = "space-between";
-    label.style.alignItems = "center";
-    label.style.width = "100%";
-    label.style.gap = "10px";
-    label.style.marginBottom = "4px";
     label.innerHTML = `
       <div style="display: flex; align-items: center; gap: 6px;">
         <input type="checkbox" name="p-condiment-opt" value="${c}" class="checkbox-custom" onchange="toggleCondimentPriceInput(this)">
@@ -2016,12 +2010,6 @@ function addCustomCondimentOption() {
 
   const label = document.createElement("label");
   label.className = "checkbox-label";
-  label.style.display = "flex";
-  label.style.justifyContent = "space-between";
-  label.style.alignItems = "center";
-  label.style.width = "100%";
-  label.style.gap = "10px";
-  label.style.marginBottom = "4px";
   const safeValue = name.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
   const deleted = JSON.parse(listDiv.dataset.deletedCondiments || "[]")
     .filter(option => option.toLowerCase() !== name.toLowerCase());
