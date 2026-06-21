@@ -12,7 +12,12 @@ We have implemented support for adding and editing **Perfect Pairings** (cross-s
 
 ### 2. Customer Frontend Layout & Styling (`index.html` and `customer.css`)
 - Added `#addon-pairings-container` with horizontal scroll row `#addon-pairings-list` directly underneath the "Set Quantity" block inside the customizer modal in `index.html`.
-- Added premium glassmorphism styling in `customer.css` for `.pairings-scroll-row`, `.pairing-card`, `.pairing-img-container`, `.pairing-veg-badge`, `.pairing-name`, `.pairing-price`, and `.pairing-add-btn` to make it visually matching the dark-themed food lab interface.
+- Updated the header inside `index.html` to adapt dynamically to the active theme via `.choice-group-title`.
+- Added premium styling in `customer.css` for `.pairings-scroll-row`, `.pairing-card`, `.pairing-img-container`, `.pairing-veg-badge`, `.pairing-name`, `.pairing-price`, and `.pairing-add-btn`.
+- Added a `justify-content: safe center` layout rule to `.pairings-scroll-row` to center items when they fit and scroll gracefully when they overflow.
+- Improved the alignment of the quick-add buttons inside `.pairing-card` using `margin-top: auto` so that the cards remain uniform in height and layout.
+- Locked down square image layouts with `aspect-ratio: 1 / 1` and improved veg/non-veg dot readability with background backdrops.
+- Implemented dual-theme configurations for all pairings styles supporting light and dark modes natively.
 
 ### 3. Customer JavaScript Logic (`customer.js`)
 - **Render Pairings**: Modified `openAddonsModal()` to check if the customized product has pairings. If so, it looks up the product data and builds horizontal tiles showing image, name, price, veg/non-veg dot, and a quick-add action button.
