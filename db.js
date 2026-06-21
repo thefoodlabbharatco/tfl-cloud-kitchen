@@ -27,10 +27,7 @@ const DEFAULT_SETTINGS = {
   supabaseUrl: TFL_RUNTIME_CONFIG.supabaseUrl || "https://rtlnhteibmtudqchlzbv.supabase.co",
   supabaseKey: TFL_RUNTIME_CONFIG.supabaseKey || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0bG5odGVpYm10dWRxY2hsemJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1ODA1MzksImV4cCI6MjA5NTE1NjUzOX0.T7ECe1xGhpV9jkKwulZrrlQsVDnXGuU-hgCloIVlLs4",
   orderRetentionDays: 2,
-  maxCompletedOrders: 100,
-  geminiApiKey: "",
-  instagramPageId: "17841445547969796",
-  instagramAccessToken: ""
+  maxCompletedOrders: 100
 };
 
 const DEFAULT_SUBBRANDS = [
@@ -457,7 +454,6 @@ const TFL_DB = {
     if (!localStorage.getItem("tfl_admins")) this.setLocal("admins", DEFAULT_ADMINS);
     if (!localStorage.getItem("tfl_updates")) this.setLocal("updates", DEFAULT_UPDATES);
     if (!localStorage.getItem("tfl_orders")) this.setLocal("orders", []);
-    if (!localStorage.getItem("tfl_social_drafts")) this.setLocal("social_drafts", []);
 
     // Pre-warm/prime the cache for all known keys so subsequent reads are instant
     this.getLocal("settings", DEFAULT_SETTINGS);
@@ -466,7 +462,6 @@ const TFL_DB = {
     this.getLocal("admins", DEFAULT_ADMINS);
     this.getLocal("updates", DEFAULT_UPDATES);
     this.getLocal("orders", []);
-    this.getLocal("social_drafts", []);
 
     this.applyThemeColors();
     this.initRealtimeSubscription();
@@ -482,9 +477,6 @@ const TFL_DB = {
     this.applyThemeColors();
     this.initRealtimeSubscription();
   },
-
-  getSocialDrafts() { return this.getLocal("social_drafts", []); },
-  saveSocialDrafts(drafts) { this.setLocal("social_drafts", drafts); },
 
   makeSubBrandId(name) {
     return String(name || "")
@@ -802,7 +794,7 @@ const TFL_DB = {
     this.updateSyncState({ syncing: true, lastError: null });
 
     try {
-      const metadataRows = ["settings", "products", "subbrands", "updates", "admins", "social_drafts"].map(key => ({
+      const metadataRows = ["settings", "products", "subbrands", "updates", "admins"].map(key => ({
         key,
         value: key === "settings" ? this.getSettings() : this.getLocal(key, [])
       }));
