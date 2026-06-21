@@ -56,7 +56,8 @@ const DEFAULT_PRODUCTS = [
       { name: "Extra butter", price: 10, costPrice: 4 },
       { name: "Achaar", price: 0, costPrice: 1 },
       { name: "Green chutney", price: 0, costPrice: 1 }
-    ]
+    ],
+    pairings: ["p7", "p6"]
   },
   {
     id: "p2",
@@ -75,7 +76,8 @@ const DEFAULT_PRODUCTS = [
       { name: "Raita", price: 15, costPrice: 6 },
       { name: "Mint chutney", price: 0, costPrice: 1 },
       { name: "Spicy", price: 0, costPrice: 0 }
-    ]
+    ],
+    pairings: ["p7", "p6"]
   },
   {
     id: "p3",
@@ -93,7 +95,8 @@ const DEFAULT_PRODUCTS = [
       { name: "Raita", price: 15, costPrice: 6 },
       { name: "Spicy", price: 0, costPrice: 0 },
       { name: "Less spicy", price: 0, costPrice: 0 }
-    ]
+    ],
+    pairings: ["p7", "p6"]
   },
   {
     id: "p4",
@@ -110,7 +113,8 @@ const DEFAULT_PRODUCTS = [
       { name: "Extra butter", price: 10, costPrice: 4 },
       { name: "Achaar", price: 0, costPrice: 1 },
       { name: "Green chutney", price: 0, costPrice: 1 }
-    ]
+    ],
+    pairings: ["p7", "p6"]
   },
   {
     id: "p5",
@@ -128,7 +132,8 @@ const DEFAULT_PRODUCTS = [
       { name: "Extra roti", price: 12, costPrice: 5 },
       { name: "Raita", price: 15, costPrice: 6 },
       { name: "Achaar", price: 0, costPrice: 1 }
-    ]
+    ],
+    pairings: ["p7"]
   },
   {
     id: "p6",
@@ -144,7 +149,8 @@ const DEFAULT_PRODUCTS = [
     condiments: [
       { name: "Spicy", price: 0, costPrice: 0 },
       { name: "Less spicy", price: 0, costPrice: 0 }
-    ]
+    ],
+    pairings: ["p7"]
   },
   {
     id: "p7",
@@ -157,7 +163,8 @@ const DEFAULT_PRODUCTS = [
     veg: true,
     bestseller: true,
     inStock: true,
-    condiments: []
+    condiments: [],
+    pairings: ["p6"]
   },
   {
     id: "p8",
@@ -173,7 +180,8 @@ const DEFAULT_PRODUCTS = [
     condiments: [
       { name: "Extra butter", price: 10, costPrice: 4 },
       { name: "Achaar", price: 0, costPrice: 1 }
-    ]
+    ],
+    pairings: ["p6"]
   },
   {
     id: "p9",
@@ -190,7 +198,8 @@ const DEFAULT_PRODUCTS = [
       { name: "Extra cheese sauce", price: 20, costPrice: 8 },
       { name: "Sour cream dip", price: 15, costPrice: 5 },
       { name: "Jalapeños", price: 10, costPrice: 3 }
-    ]
+    ],
+    pairings: ["p7"]
   }
 ];
 

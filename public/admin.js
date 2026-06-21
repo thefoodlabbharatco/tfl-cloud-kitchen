@@ -1244,6 +1244,35 @@ function openProductModal(productId = null) {
   choiceGroupsList.innerHTML = "";
   (product?.optionGroups || product?.choiceGroups || []).forEach(group => renderChoiceGroupOption(group.name, group.options || group.choices || []));
   
+  // Render pairings checklist
+  const pairingsChecklist = document.getElementById("product-pairings-checklist");
+  if (pairingsChecklist) {
+    pairingsChecklist.innerHTML = "";
+    const allProducts = TFL_DB.getProducts();
+    const otherProducts = allProducts.filter(p => p.id !== productId);
+    
+    if (otherProducts.length === 0) {
+      pairingsChecklist.innerHTML = `<p style="font-size: 0.75rem; color: var(--color-text-muted); padding: 4px;">No other products formulated yet.</p>`;
+    } else {
+      otherProducts.forEach(op => {
+        const label = document.createElement("label");
+        label.className = "checkbox-label";
+        label.style.display = "flex";
+        label.style.alignItems = "center";
+        label.style.gap = "6px";
+        label.style.marginBottom = "2px";
+        
+        const isChecked = product && product.pairings && product.pairings.includes(op.id) ? "checked" : "";
+        
+        label.innerHTML = `
+          <input type="checkbox" name="p-pairing-opt" value="${op.id}" class="checkbox-custom" ${isChecked}>
+          <span style="font-size: 0.78rem;">${op.name} (₹${op.price})</span>
+        `;
+        pairingsChecklist.appendChild(label);
+      });
+    }
+  }
+
   if (productId) {
     // Edit Mode
     document.getElementById("product-modal-title").innerText = "Modify Formulation";
@@ -1327,6 +1356,10 @@ async function handleProductSubmit(event) {
     const costPrice = costInput ? (parseFloat(costInput.value) || 0) : 0;
     return { name, price, costPrice };
   });
+  
+  const checkedPairings = document.querySelectorAll('input[name="p-pairing-opt"]:checked');
+  const pairings = Array.from(checkedPairings).map(cb => cb.value);
+
   const optionGroups = Array.from(document.querySelectorAll("#product-choice-groups-list .choice-group-card")).map(card => ({
     name: card.querySelector(".choice-group-title-input")?.value.trim() || "",
     options: Array.from(card.querySelectorAll(".choice-option-input")).map(input => input.value.trim()).filter(Boolean)
@@ -1354,14 +1387,15 @@ async function handleProductSubmit(event) {
       bestseller,
       condiments,
       hiddenCondiments,
-      optionGroups
+      optionGroups,
+      pairings
     };
   } else {
     // Add Product
     const newId = "p-" + Date.now();
     products.push({
       id: newId,
-      name, description: desc, category, image, costPrice: cost, price, veg, bestseller, condiments, hiddenCondiments, optionGroups,
+      name, description: desc, category, image, costPrice: cost, price, veg, bestseller, condiments, hiddenCondiments, optionGroups, pairings,
       inStock: true
     });
   }

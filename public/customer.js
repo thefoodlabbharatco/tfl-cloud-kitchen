@@ -693,8 +693,100 @@ function openAddonsModal(product) {
     addProductToCart(product, productQty, selectedCondiments);
     toggleAddonsModal(false);
   };
+
+  // Populate Pairings
+  const pairingsContainer = document.getElementById("addon-pairings-container");
+  const pairingsList = document.getElementById("addon-pairings-list");
+  if (pairingsList) pairingsList.innerHTML = "";
+  
+  if (pairingsContainer && pairingsList) {
+    const pairings = product.pairings || [];
+    if (pairings.length > 0) {
+      pairingsContainer.style.display = "block";
+      const allProducts = TFL_DB.getProducts();
+      
+      pairings.forEach(pId => {
+        const pairedProd = allProducts.find(p => p.id === pId && !p.unlisted && p.inStock);
+        if (!pairedProd) return;
+        
+        const card = document.createElement("div");
+        card.className = "pairing-card";
+        
+        const vegClass = pairedProd.veg ? "veg" : "nonveg";
+        
+        const inCartQty = getCartProductQty(pairedProd.id);
+        const btnText = inCartQty > 0 ? `Added (${inCartQty})` : `ADD <span style="font-size:0.65rem; vertical-align: middle;">+</span>`;
+        const btnClass = inCartQty > 0 ? "pairing-add-btn added" : "pairing-add-btn";
+        
+        card.innerHTML = `
+          <div class="pairing-img-container">
+            <div class="pairing-veg-badge ${vegClass}"></div>
+            <img src="${pairedProd.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=200&q=80'}" alt="${pairedProd.name}">
+          </div>
+          <div class="pairing-name" title="${pairedProd.name}">${pairedProd.name}</div>
+          <div class="pairing-price">₹${pairedProd.price}</div>
+          <button class="${btnClass}" onclick="addPairedProductToCart('${pairedProd.id}')">${btnText}</button>
+        `;
+        pairingsList.appendChild(card);
+      });
+      
+      if (pairingsList.children.length === 0) {
+        pairingsContainer.style.display = "none";
+      }
+    } else {
+      pairingsContainer.style.display = "none";
+    }
+  }
   
   toggleAddonsModal(true);
+}
+
+function addPairedProductToCart(pairedProductId) {
+  const product = TFL_DB.getProducts().find(p => p.id === pairedProductId);
+  if (!product || !product.inStock) return;
+  
+  const conds = product.condiments || [];
+  const choiceGroups = product.optionGroups || product.choiceGroups || [];
+  
+  if (conds.length === 0 && choiceGroups.length === 0) {
+    addProductToCart(product, 1, []);
+    TFL_DB.showToast(`${product.name} added to cart!`, "success");
+    updatePairingsDisplay();
+  } else {
+    toggleAddonsModal(false);
+    setTimeout(() => {
+      initiateAddToCart(pairedProductId);
+    }, 300);
+  }
+}
+
+function updatePairingsDisplay() {
+  if (!selectedProductForAddons) return;
+  const pairingsList = document.getElementById("addon-pairings-list");
+  if (!pairingsList) return;
+  
+  const pairings = selectedProductForAddons.pairings || [];
+  const allProducts = TFL_DB.getProducts();
+  const buttons = pairingsList.querySelectorAll(".pairing-add-btn");
+  
+  let btnIdx = 0;
+  pairings.forEach(pId => {
+    const pairedProd = allProducts.find(p => p.id === pId && !p.unlisted && p.inStock);
+    if (!pairedProd) return;
+    
+    const btn = buttons[btnIdx];
+    if (btn) {
+      const inCartQty = getCartProductQty(pairedProd.id);
+      if (inCartQty > 0) {
+        btn.innerText = `Added (${inCartQty})`;
+        btn.className = "pairing-add-btn added";
+      } else {
+        btn.innerHTML = `ADD <span style="font-size:0.65rem; vertical-align: middle;">+</span>`;
+        btn.className = "pairing-add-btn";
+      }
+    }
+    btnIdx++;
+  });
 }
 
 function toggleAddonsModal(show) {
