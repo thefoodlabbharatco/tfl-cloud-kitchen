@@ -22,7 +22,7 @@ We have implemented support for adding and editing **Perfect Pairings** (cross-s
 ### 3. Customer JavaScript Logic (`customer.js`)
 - **Render Pairings**: Modified `openAddonsModal()` to check if the customized product has pairings. If so, it looks up the product data and builds horizontal tiles showing image, name, price, veg/non-veg dot, and a quick-add action button.
 - **Direct Add to Cart**: Added `addPairedProductToCart(pairedProductId)`. If the paired item has no customization (e.g. roti or drink), clicking the button adds it directly to the cart and triggers a success toast, keeping the customization modal open. If the paired item has customization parameters, it smoothly switches to customize that item.
-- **Dynamic State Sync**: Implemented `updatePairingsDisplay()` to change button states to "Added (Qty)" immediately when added.
+- **Dynamic State Sync & Interactive Quantity Selector**: Modified `updatePairingsDisplay()` to render a reactive quantity selector wrapper (`.pairing-qty-wrapper`) with `-`, quantity value, and `+` buttons for already added paired items. Decrementing decreases the quantity in the cart via `handleProductDecrement()`, and incrementing adds to the cart or opens options customization via `addPairedProductToCart()`. We also integrated this into `updateCartDisplay()` to sync all actions reactively.
 
 ### 4. Admin Formulation Panel (`admin.html` and `admin.js`)
 - Added a **Perfect Pairings (Upsell Suggestions)** checklists section in the admin product modal (`admin.html`).
