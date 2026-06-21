@@ -1,30 +1,28 @@
-# Walkthrough - Condiment Costs and Pricing Integration
+# Walkthrough - Perfect Product Pairings Integration
 
-We have implemented support for adding and editing cost and selling prices for all condiments (both free and paid) in the cloud kitchen manager dashboard. These values are now fully integrated into overall dashboard KPIs (revenue, cost, net profit), individual order profit displays, and the financial CSV exports.
+We have implemented support for adding and editing **Perfect Pairings** (cross-selling items) for each product in the admin formulations panel, and displaying them as horizontal scrollable product card tiles directly in the customization modal on the customer side.
 
 ---
 
 ## 🧹 Modifications Summary
 
-### 1. Default Database Seed (`db.js`)
-- Updated default condiments list on the 9 default products in `DEFAULT_PRODUCTS` to include a logical `costPrice` field:
-  - Free condiments (e.g., "Add Onion Filling", "Achaar", "Green chutney", "Mint chutney") have a cost price of ₹1 or ₹2.
-  - Paid condiments (e.g., "Extra butter", "Raita", "Extra roti", "Jalapeños") have a cost price lower than their selling price.
+### 1. Database Schema (`db.js`)
+- Added a `pairings` array (containing string IDs of complementary menu items) to default products in `DEFAULT_PRODUCTS`.
+  - E.g. Tandoori Aloo Paratha (`p1`) and Paneer Paratha (`p2`) are paired with Masala Shikanji (`p7`) and Peri Peri Fries (`p6`).
 
-### 2. Admin HTML & CSS Layouts (`admin.html` and `admin.css`)
-- Added a cost price input field next to the selling price field in the custom condiment entry row in `admin.html`.
-- Updated the grid layout in `admin.css` (`grid-template-columns: minmax(0, 1fr) 80px 80px auto;`) to neatly align Name, Selling Price, Cost Price, and Add buttons.
+### 2. Customer Frontend Layout & Styling (`index.html` and `customer.css`)
+- Added `#addon-pairings-container` with horizontal scroll row `#addon-pairings-list` directly underneath the "Set Quantity" block inside the customizer modal in `index.html`.
+- Added premium glassmorphism styling in `customer.css` for `.pairings-scroll-row`, `.pairing-card`, `.pairing-img-container`, `.pairing-veg-badge`, `.pairing-name`, `.pairing-price`, and `.pairing-add-btn` to make it visually matching the dark-themed food lab interface.
 
-### 3. Admin Dashboard Logic (`admin.js`)
-- **Checklist Input Controls**: Updated the product modal condiments checklist to render separate inputs for Selling Price (`S:`) and Cost Price (`C:`).
-- **Edit Mode Population**: Modified edit-mode loading logic to load both `price` and `costPrice` values into their respective checklist inputs from the product data.
-- **Form Submission**: Updated `handleProductSubmit` to collect both values and save them as `{ name, price, costPrice }` for each condiment.
-- **Custom Condiments Addition**: Updated `addCustomCondimentOption()` to read both the custom price and cost inputs and render the option checkbox with separate inputs.
-- **Toggle State Binding**: Updated `toggleCondimentPriceInput` to enable/disable both price and cost inputs when checking/unchecking options.
-- **Dashboard Profit KPI**: Integrated condiment costs into overall dashboard revenue/cost calculations by looking up individual condiment cost prices from the original product configuration.
-- **Order Card Transparency**: Included condiment cost values in the order card cost details.
-- **CSV Export**: Updated the order cost calculation loop in CSV exports to aggregate condiment cost prices, ensuring accurate net profit values in exported financial sheets.
-- **Menu Table allowed condiments**: Updated the condiments list display to show both selling and cost prices (e.g., `Extra butter (Sell: +₹10, Cost: +₹4)`).
+### 3. Customer JavaScript Logic (`customer.js`)
+- **Render Pairings**: Modified `openAddonsModal()` to check if the customized product has pairings. If so, it looks up the product data and builds horizontal tiles showing image, name, price, veg/non-veg dot, and a quick-add action button.
+- **Direct Add to Cart**: Added `addPairedProductToCart(pairedProductId)`. If the paired item has no customization (e.g. roti or drink), clicking the button adds it directly to the cart and triggers a success toast, keeping the customization modal open. If the paired item has customization parameters, it smoothly switches to customize that item.
+- **Dynamic State Sync**: Implemented `updatePairingsDisplay()` to change button states to "Added (Qty)" immediately when added.
+
+### 4. Admin Formulation Panel (`admin.html` and `admin.js`)
+- Added a **Perfect Pairings (Upsell Suggestions)** checklists section in the admin product modal (`admin.html`).
+- Modified `openProductModal()` in `admin.js` to render checkboxes for all other formulated products (excluding the current one itself) and mark active pairings checked.
+- Modified `handleProductSubmit()` to collect selected pairings checkboxes and save them under the `pairings` array property of the product.
 
 ---
 
@@ -36,4 +34,4 @@ We have implemented support for adding and editing cost and selling prices for a
    - Static pages generation was completed successfully:
      - `/` (prerendered)
      - `/admin` (prerendered)
-3. **Git Cleanliness**: Staged and committed only the modified files (`admin.css`, `admin.html`, `admin.js`, `db.js`, `public/admin.css`, `public/admin.js`, `public/db.js`), and successfully pushed to `main`.
+3. **Git Cleanliness**: Staged and committed only the modified files, and successfully pushed to `main`.
