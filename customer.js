@@ -571,6 +571,24 @@ function adjustCondimentQty(condName, offset) {
   span.innerText = currentQty;
 }
 
+function getProductPairings(product) {
+  if (!product) return [];
+  let pairings = product.pairings || [];
+  if (typeof pairings === 'string') {
+    try {
+      pairings = pairings.trim();
+      if (pairings.startsWith('[') || pairings.startsWith('{')) {
+        pairings = JSON.parse(pairings);
+      } else {
+        pairings = pairings.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    } catch (e) {
+      pairings = [];
+    }
+  }
+  return Array.isArray(pairings) ? pairings : [];
+}
+
 // Open Customize Modal Sheet
 function openAddonsModal(product) {
   document.getElementById("addon-item-name").innerText = `Customize ${product.name}`;
@@ -700,7 +718,7 @@ function openAddonsModal(product) {
   if (pairingsList) pairingsList.innerHTML = "";
   
   if (pairingsContainer && pairingsList) {
-    const pairings = product.pairings || [];
+    const pairings = getProductPairings(product);
     if (pairings.length > 0) {
       pairingsContainer.style.display = "block";
       const allProducts = TFL_DB.getProducts();
@@ -780,7 +798,7 @@ function getPairingActionBtnHtml(productId, qty) {
 
 function updatePairingsDisplay() {
   if (!selectedProductForAddons) return;
-  const pairings = selectedProductForAddons.pairings || [];
+  const pairings = getProductPairings(selectedProductForAddons);
   const allProducts = TFL_DB.getProducts();
   
   pairings.forEach(pId => {
