@@ -332,6 +332,10 @@ function renderProducts() {
   // We'll support an `unlisted` property which default to false.
   products = products.filter(p => !p.unlisted);
   
+  // Filter out products belonging to hidden sub-brands
+  const visibleSubBrands = new Set(TFL_DB.getSubBrands().filter(s => s.visible).map(s => s.id));
+  products = products.filter(p => visibleSubBrands.has(p.category));
+  
   // Apply category filter
   if (activeSubBrand !== 'all') {
     products = products.filter(p => p.category === activeSubBrand);
@@ -724,9 +728,10 @@ function openAddonsModal(product) {
     if (pairings.length > 0) {
       pairingsContainer.style.display = "block";
       const allProducts = TFL_DB.getProducts();
+      const visibleSubBrands = new Set(TFL_DB.getSubBrands().filter(s => s.visible).map(s => s.id));
       
       pairings.forEach(pId => {
-        const pairedProd = allProducts.find(p => p.id === pId && !p.unlisted && p.inStock);
+        const pairedProd = allProducts.find(p => p.id === pId && !p.unlisted && p.inStock && visibleSubBrands.has(p.category));
         if (!pairedProd) return;
         
         const card = document.createElement("div");
