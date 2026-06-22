@@ -906,7 +906,7 @@ function resendOrderDetailsWhatsApp(orderId) {
   if (order.promoCode) {
     message += `Discount (${order.promoCode} - ${order.discountPercent}%): -Rs ${order.discountAmount}\n`;
   }
-  message += `Delivery Charges: Rs ${order.deliveryCharge}\n`;
+  message += `Delivery Charges: Rs ${order.deliveryCharge === 0 ? '0 (Free)' : order.deliveryCharge}\n`;
   if (order.lateNightFee && order.lateNightFee > 0) {
     message += `Late Night Fee: Rs ${order.lateNightFee}\n`;
   }
@@ -1045,7 +1045,7 @@ function printReceiptFromAdmin(orderId) {
         ` : ''}
         <tr>
           <td>Delivery Charge</td>
-          <td style="text-align: right;">₹${order.deliveryCharge.toFixed(2)}</td>
+          <td style="text-align: right;">${order.deliveryCharge === 0 ? 'Free' : `₹${order.deliveryCharge.toFixed(2)}`}</td>
         </tr>
         ${lateNightHtml}
         <tr style="font-weight: bold; font-size: 16px;">
@@ -1953,6 +1953,8 @@ function renderSettingsForm() {
   document.getElementById("settings-delivery-charge").value = settings.deliveryCharge;
   document.getElementById("settings-late-night-toggle").checked = settings.lateNightFeeEnabled;
   document.getElementById("settings-late-night-amount").value = settings.lateNightFeeAmount;
+  document.getElementById("settings-free-delivery-toggle").checked = settings.freeDeliveryMinOrderEnabled || false;
+  document.getElementById("settings-free-delivery-min-price").value = settings.freeDeliveryMinOrderAmount || 0;
   document.getElementById("settings-closed-msg").value = settings.closedMessage || "";
   document.getElementById("settings-order-retention").value = settings.orderRetentionDays || 2;
   document.getElementById("settings-max-completed-orders").value = settings.maxCompletedOrders || 100;
@@ -1984,6 +1986,8 @@ async function saveSettings(event) {
   settings.deliveryCharge = parseFloat(document.getElementById("settings-delivery-charge").value) || 0;
   settings.lateNightFeeEnabled = document.getElementById("settings-late-night-toggle").checked;
   settings.lateNightFeeAmount = parseFloat(document.getElementById("settings-late-night-amount").value) || 0;
+  settings.freeDeliveryMinOrderEnabled = document.getElementById("settings-free-delivery-toggle").checked;
+  settings.freeDeliveryMinOrderAmount = parseFloat(document.getElementById("settings-free-delivery-min-price").value) || 0;
   settings.closedMessage = document.getElementById("settings-closed-msg").value.trim();
   settings.orderRetentionDays = parseInt(document.getElementById("settings-order-retention").value, 10) || 2;
   settings.maxCompletedOrders = parseInt(document.getElementById("settings-max-completed-orders").value, 10) || 100;

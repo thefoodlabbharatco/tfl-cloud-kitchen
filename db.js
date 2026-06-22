@@ -12,6 +12,8 @@ const DEFAULT_SETTINGS = {
   upiId: "tfl@upi", 
   qrImageUrl: "https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg",
   deliveryCharge: 40,
+  freeDeliveryMinOrderEnabled: false,
+  freeDeliveryMinOrderAmount: 500,
   hideProductPrices: false,
   lateNightFeeEnabled: false,
   lateNightFeeAmount: 30,

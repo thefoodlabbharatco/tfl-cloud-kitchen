@@ -1088,6 +1088,15 @@ function syncPromoCodeInputs() {
   }
 }
 
+// Helper to determine delivery charges based on free delivery settings
+function calculateDeliveryCharge(subtotal, settings) {
+  if (subtotal <= 0) return 0;
+  if (settings.freeDeliveryMinOrderEnabled && subtotal >= settings.freeDeliveryMinOrderAmount) {
+    return 0;
+  }
+  return settings.deliveryCharge;
+}
+
 // Update Cart totals and displays
 function updateCartDisplay() {
   const stickyPanel = document.getElementById("sticky-cart-panel");
@@ -1131,7 +1140,7 @@ function updateCartDisplay() {
   const cartSubtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
   
   const settings = TFL_DB.getSettings();
-  const delivery = cartSubtotal > 0 ? settings.deliveryCharge : 0;
+  const delivery = calculateDeliveryCharge(cartSubtotal, settings);
   const lateNight = (cartSubtotal > 0 && settings.lateNightFeeEnabled) ? settings.lateNightFeeAmount : 0;
   
   let discountAmount = 0;
@@ -1149,7 +1158,37 @@ function updateCartDisplay() {
   }
   
   document.getElementById("cart-subtotal-price").innerText = `₹${cartSubtotal.toFixed(2)}`;
-  document.getElementById("cart-delivery-charge").innerText = `₹${delivery.toFixed(2)}`;
+  
+  const cartDeliveryEl = document.getElementById("cart-delivery-charge");
+  if (cartDeliveryEl) {
+    if (delivery === 0 && settings.freeDeliveryMinOrderEnabled && cartSubtotal >= settings.freeDeliveryMinOrderAmount) {
+      cartDeliveryEl.innerHTML = `<span style="text-decoration: line-through; color: var(--color-text-muted); margin-right: 6px;">₹${settings.deliveryCharge.toFixed(2)}</span><span style="color: var(--color-success); font-weight: 600;">Free</span>`;
+    } else {
+      cartDeliveryEl.innerText = `₹${delivery.toFixed(2)}`;
+    }
+  }
+
+  // Update Free Delivery Banner/Progress Indicator
+  const freeDeliveryBanner = document.getElementById("cart-free-delivery-banner");
+  if (freeDeliveryBanner) {
+    if (cartSubtotal > 0 && settings.freeDeliveryMinOrderEnabled) {
+      freeDeliveryBanner.style.display = "flex";
+      if (cartSubtotal >= settings.freeDeliveryMinOrderAmount) {
+        freeDeliveryBanner.innerHTML = `<span>🎉 <strong>Free Delivery unlocked!</strong> You saved ₹${settings.deliveryCharge.toFixed(2)}</span>`;
+        freeDeliveryBanner.style.background = "rgba(22, 163, 74, 0.1)";
+        freeDeliveryBanner.style.borderColor = "rgba(22, 163, 74, 0.2)";
+        freeDeliveryBanner.style.color = "var(--color-success)";
+      } else {
+        const needed = settings.freeDeliveryMinOrderAmount - cartSubtotal;
+        freeDeliveryBanner.innerHTML = `<span>🚚 Add <strong>₹${needed.toFixed(2)}</strong> more for <strong>FREE Delivery</strong>!</span>`;
+        freeDeliveryBanner.style.background = "rgba(249, 115, 22, 0.1)";
+        freeDeliveryBanner.style.borderColor = "rgba(249, 115, 22, 0.2)";
+        freeDeliveryBanner.style.color = "var(--color-warning)";
+      }
+    } else {
+      freeDeliveryBanner.style.display = "none";
+    }
+  }
   
   const lateNightRow = document.getElementById("cart-late-night-row");
   if (lateNightRow) {
@@ -1187,7 +1226,13 @@ function updateCartDisplay() {
   const checkoutGrandTotal = document.getElementById("checkout-grand-total-price");
 
   if (checkoutSubtotal) checkoutSubtotal.innerText = `₹${cartSubtotal.toFixed(2)}`;
-  if (checkoutDelivery) checkoutDelivery.innerText = `₹${delivery.toFixed(2)}`;
+  if (checkoutDelivery) {
+    if (delivery === 0 && settings.freeDeliveryMinOrderEnabled && cartSubtotal >= settings.freeDeliveryMinOrderAmount) {
+      checkoutDelivery.innerHTML = `<span style="text-decoration: line-through; color: var(--color-text-muted); margin-right: 6px;">₹${settings.deliveryCharge.toFixed(2)}</span><span style="color: var(--color-success); font-weight: 600;">Free</span>`;
+    } else {
+      checkoutDelivery.innerText = `₹${delivery.toFixed(2)}`;
+    }
+  }
   if (checkoutLateNightRow && checkoutLateNightFee) {
     if (lateNight > 0) {
       checkoutLateNightRow.style.display = "flex";
@@ -1420,7 +1465,7 @@ async function submitOrder(event) {
   
   const orderId = generateOrderCode();
   const cartSubtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
-  const delivery = settings.deliveryCharge;
+  const delivery = calculateDeliveryCharge(cartSubtotal, settings);
   const lateNight = settings.lateNightFeeEnabled ? settings.lateNightFeeAmount : 0;
   
   let discountAmount = 0;
@@ -1554,7 +1599,7 @@ function openReceiptModal(order) {
       ` : ''}
       <div class="receipt-total-row">
         <span>Delivery Charges</span>
-        <span>₹${order.deliveryCharge.toFixed(2)}</span>
+        <span>${order.deliveryCharge === 0 ? '<span style="color: var(--color-success); font-weight: 600;">Free</span>' : `₹${order.deliveryCharge.toFixed(2)}`}</span>
       </div>
       ${order.lateNightFee && order.lateNightFee > 0 ? `
       <div class="receipt-total-row">
@@ -1634,7 +1679,7 @@ function recalculateReceiptOrderTotals(order) {
   });
 
   const subtotal = (order.items || []).reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const delivery = subtotal > 0 ? settings.deliveryCharge : 0;
+  const delivery = calculateDeliveryCharge(subtotal, settings);
   const lateNight = (subtotal > 0 && settings.lateNightFeeEnabled) ? settings.lateNightFeeAmount : 0;
   
   let discountAmount = 0;
@@ -1788,7 +1833,7 @@ function sendOrderWhatsApp(options = {}) {
   if (currentReceiptOrder.promoCode) {
     message += `Discount (${currentReceiptOrder.promoCode} - ${currentReceiptOrder.discountPercent}%): -Rs ${currentReceiptOrder.discountAmount}\n`;
   }
-  message += `Delivery Charges: Rs ${currentReceiptOrder.deliveryCharge}\n`;
+  message += `Delivery Charges: Rs ${currentReceiptOrder.deliveryCharge === 0 ? '0 (Free)' : currentReceiptOrder.deliveryCharge}\n`;
   if (currentReceiptOrder.lateNightFee && currentReceiptOrder.lateNightFee > 0) {
     message += `Late Night Fee: Rs ${currentReceiptOrder.lateNightFee}\n`;
   }
