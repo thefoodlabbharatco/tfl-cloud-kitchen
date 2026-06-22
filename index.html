@@ -178,10 +178,24 @@
       <!-- Items generated dynamically by JS -->
     </div>
     <div class="slide-over-footer">
+      <!-- Promo Code Section -->
+      <div class="promo-code-container" style="margin-bottom: var(--space-md); border-bottom: 1px solid var(--color-border); padding-bottom: var(--space-sm);">
+        <label class="form-label" for="cart-promo-input" style="font-size: 0.8rem; margin-bottom: 4px; display: block; color: var(--color-text-muted);">Promo Code</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="cart-promo-input" class="form-control" placeholder="Enter promo code" style="text-transform: uppercase; font-size: 0.85rem; padding: 6px 12px; height: 36px; background: rgba(255,255,255,0.05); border: 1px solid var(--color-border); color: #fff; border-radius: var(--radius-sm); width: 100%;">
+          <button type="button" id="btn-apply-promo-cart" class="btn btn-primary" onclick="applyPromoCode('cart')" style="font-size: 0.85rem; padding: 6px 16px; height: 36px; white-space: nowrap;">Apply</button>
+        </div>
+        <div id="cart-promo-message" style="font-size: 0.75rem; margin-top: 4px; display: none;"></div>
+      </div>
+
       <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: var(--space-md);">
         <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
           <span style="color: var(--color-text-muted);">Cart Subtotal</span>
           <span id="cart-subtotal-price">₹0.00</span>
+        </div>
+        <div id="cart-discount-row" style="display: none; justify-content: space-between; font-size: 0.9rem; color: var(--color-success);">
+          <span>Promo Discount (<span id="cart-discount-percent">0</span>%)</span>
+          <span id="cart-discount-amount">-₹0.00</span>
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
           <span style="color: var(--color-text-muted);">Delivery Charges</span>
@@ -280,7 +294,43 @@
             Note: Send payment screenshot on WhatsApp after receipt generation.
           </p>
         </div>
-        
+        <!-- Promo Code & Checkout Summary Section -->
+        <div class="checkout-summary-section" style="margin-top: var(--space-lg); border-top: 1px solid var(--color-border); padding-top: var(--space-md); margin-bottom: var(--space-md);">
+          <h4 style="color: #fff; margin-bottom: var(--space-sm); font-size: 0.95rem;">Order Summary</h4>
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; margin-bottom: var(--space-md);">
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--color-text-muted);">Items Subtotal</span>
+              <span id="checkout-subtotal-price">₹0.00</span>
+            </div>
+            <div id="checkout-discount-row" style="display: none; justify-content: space-between; color: var(--color-success);">
+              <span>Promo Discount (<span id="checkout-discount-percent">0</span>%)</span>
+              <span id="checkout-discount-amount">-₹0.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--color-text-muted);">Delivery Charges</span>
+              <span id="checkout-delivery-charge">₹0.00</span>
+            </div>
+            <div id="checkout-late-night-row" style="display: none; justify-content: space-between;">
+              <span style="color: var(--color-text-muted);">Late Night Fee</span>
+              <span id="checkout-late-night-fee">₹0.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 1rem; border-top: 1px dashed var(--color-border); padding-top: 6px; margin-top: 4px;">
+              <span style="color: #fff;">Grand Total</span>
+              <span id="checkout-grand-total-price" style="color: var(--color-primary);">₹0.00</span>
+            </div>
+          </div>
+
+          <!-- Promo Code Input in Checkout -->
+          <div class="promo-code-container" style="margin-bottom: var(--space-md);">
+            <label class="form-label" for="checkout-promo-input" style="font-size: 0.8rem; margin-bottom: 4px; display: block; color: var(--color-text-muted);">Promo Code</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="checkout-promo-input" class="form-control" placeholder="Enter promo code" style="text-transform: uppercase; font-size: 0.85rem; padding: 6px 12px; height: 36px; background: rgba(255,255,255,0.05); border: 1px solid var(--color-border); color: #fff; border-radius: var(--radius-sm); width: 100%;">
+              <button type="button" id="btn-apply-promo-checkout" class="btn btn-primary" onclick="applyPromoCode('checkout')" style="font-size: 0.85rem; padding: 6px 16px; height: 36px; white-space: nowrap;">Apply</button>
+            </div>
+            <div id="checkout-promo-message" style="font-size: 0.75rem; margin-top: 4px; display: none;"></div>
+          </div>
+        </div>
+
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: var(--space-md); margin-bottom: 10px;">
           <button type="button" class="btn btn-danger" onclick="startNewOrder(true)" style="font-size: 0.85rem; padding: 10px 6px;">
             <i data-lucide="plus-circle" style="width: 14px; height: 14px; display: inline; vertical-align: middle;"></i> Start New Order

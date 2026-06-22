@@ -77,6 +77,9 @@
         <div class="sidebar-item" onclick="switchTab('announcements')" id="tab-announcements">
           <i data-lucide="megaphone"></i> Updates & Banners
         </div>
+        <div class="sidebar-item" onclick="switchTab('promocodes')" id="tab-promocodes">
+          <i data-lucide="ticket"></i> Promo Codes
+        </div>
         <div class="sidebar-item" onclick="switchTab('customization')" id="tab-customization">
           <i data-lucide="palette"></i> Brand Customization
         </div>
@@ -340,6 +343,33 @@
               </tr>
             </thead>
             <tbody id="updates-admin-list">
+              <!-- JS rendered -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB: PROMO CODES MODULE -->
+      <section id="section-promocodes" class="tab-panel" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md);">
+          <h3 style="color: #fff;">Promo Codes Manager</h3>
+          <button class="btn btn-primary btn-sm" onclick="openPromoCodeModal()">
+            <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add Promo Code
+          </button>
+        </div>
+        
+        <div class="table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Discount %</th>
+                <th>Valid Till</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="promocodes-admin-list">
               <!-- JS rendered -->
             </tbody>
           </table>
@@ -804,6 +834,41 @@ with check (bucket_id = 'product-images');</pre>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" onclick="closeUpdateModal()">Cancel</button>
         <button type="submit" class="btn btn-primary">Publish Banner</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- MODAL: ADD / EDIT PROMO CODE -->
+  <div id="promocode-modal" class="admin-modal">
+    <div class="modal-header">
+      <h3 style="color: #fff;" id="promocode-modal-title">Configure Promo Code</h3>
+      <button class="slide-over-close" onclick="closePromoCodeModal()">&times;</button>
+    </div>
+    <form id="promocode-form" onsubmit="handlePromoCodeSubmit(event)">
+      <div class="modal-body">
+        <input type="hidden" id="promocode-modal-id">
+        <div class="form-group">
+          <label class="form-label" for="pc-code">Promo Code *</label>
+          <input type="text" id="pc-code" class="form-control" required placeholder="e.g. TFL20" style="text-transform: uppercase;">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="pc-discount">Discount Percentage (%) *</label>
+          <input type="number" id="pc-discount" class="form-control" required min="1" max="100" placeholder="e.g. 20">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="pc-valid-till">Valid Till *</label>
+          <input type="date" id="pc-valid-till" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label class="checkbox-label" style="margin-top: 10px;">
+            <input type="checkbox" id="pc-active" class="checkbox-custom" checked>
+            <span>Active</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closePromoCodeModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Promo Code</button>
       </div>
     </form>
   </div>

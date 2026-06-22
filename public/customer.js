@@ -23,6 +23,7 @@ let searchQuery = "";
 let selectedProductForAddons = null;
 let currentReceiptOrder = null;
 let productRenderFrame = null;
+let appliedPromoCode = null; // Stores { code, discountPercent }
 
 function scheduleIdle(callback) {
   if (typeof requestIdleCallback === "function") {
@@ -946,6 +947,147 @@ function addProductToCart(product, quantity, condiments) {
   renderProducts(); // Update count widgets on cards
 }
 
+function applyPromoCode(source) {
+  const inputId = source === 'cart' ? 'cart-promo-input' : 'checkout-promo-input';
+  const msgId = source === 'cart' ? 'cart-promo-message' : 'checkout-promo-message';
+  
+  const inputEl = document.getElementById(inputId);
+  const msgEl = document.getElementById(msgId);
+  
+  if (!inputEl) return;
+  
+  // If a code is currently applied, the button is "Remove"
+  if (appliedPromoCode) {
+    removePromoCode();
+    return;
+  }
+  
+  const code = inputEl.value.trim().toUpperCase();
+  if (!code) {
+    TFL_DB.showToast("Please enter a promo code first.", "warning");
+    return;
+  }
+  
+  const promocodes = TFL_DB.getPromoCodes ? TFL_DB.getPromoCodes() : [];
+  const match = promocodes.find(p => p.code.toUpperCase() === code);
+  
+  if (!match) {
+    TFL_DB.showToast("Invalid promo code. Please try again.", "error");
+    if (msgEl) {
+      msgEl.innerText = "Invalid promo code.";
+      msgEl.style.color = "var(--color-danger)";
+      msgEl.style.display = "block";
+    }
+    return;
+  }
+  
+  if (match.active === false || match.active === "false" || match.active === 0 || match.active === "0") {
+    TFL_DB.showToast("This promo code is no longer active.", "error");
+    if (msgEl) {
+      msgEl.innerText = "Inactive promo code.";
+      msgEl.style.color = "var(--color-danger)";
+      msgEl.style.display = "block";
+    }
+    return;
+  }
+  
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (match.validTill && match.validTill < todayStr) {
+    TFL_DB.showToast("This promo code has expired.", "error");
+    if (msgEl) {
+      msgEl.innerText = "Expired promo code.";
+      msgEl.style.color = "var(--color-danger)";
+      msgEl.style.display = "block";
+    }
+    return;
+  }
+  
+  // Success!
+  appliedPromoCode = {
+    code: match.code,
+    discountPercent: parseFloat(match.discountPercent) || 0
+  };
+  
+  TFL_DB.showToast(`Promo code '${match.code}' applied successfully!`, "success");
+  
+  // Sync both inputs & UI state
+  syncPromoCodeInputs();
+  updateCartDisplay();
+}
+
+function removePromoCode() {
+  appliedPromoCode = null;
+  TFL_DB.showToast("Promo code removed.", "info");
+  syncPromoCodeInputs();
+  updateCartDisplay();
+}
+
+function syncPromoCodeInputs() {
+  const cartInput = document.getElementById('cart-promo-input');
+  const cartMsg = document.getElementById('cart-promo-message');
+  const cartBtn = document.getElementById('btn-apply-promo-cart');
+  
+  const checkInput = document.getElementById('checkout-promo-input');
+  const checkMsg = document.getElementById('checkout-promo-message');
+  const checkBtn = document.getElementById('btn-apply-promo-checkout');
+  
+  if (appliedPromoCode) {
+    if (cartInput) {
+      cartInput.value = appliedPromoCode.code;
+      cartInput.disabled = true;
+    }
+    if (cartBtn) {
+      cartBtn.innerText = "Remove";
+      cartBtn.className = "btn btn-danger";
+    }
+    if (cartMsg) {
+      cartMsg.innerText = `Code '${appliedPromoCode.code}' applied (${appliedPromoCode.discountPercent}% off subtotal).`;
+      cartMsg.style.color = "var(--color-success)";
+      cartMsg.style.display = "block";
+    }
+    
+    if (checkInput) {
+      checkInput.value = appliedPromoCode.code;
+      checkInput.disabled = true;
+    }
+    if (checkBtn) {
+      checkBtn.innerText = "Remove";
+      checkBtn.className = "btn btn-danger";
+    }
+    if (checkMsg) {
+      checkMsg.innerText = `Code '${appliedPromoCode.code}' applied (${appliedPromoCode.discountPercent}% off subtotal).`;
+      checkMsg.style.color = "var(--color-success)";
+      checkMsg.style.display = "block";
+    }
+  } else {
+    if (cartInput) {
+      cartInput.value = "";
+      cartInput.disabled = false;
+    }
+    if (cartBtn) {
+      cartBtn.innerText = "Apply";
+      cartBtn.className = "btn btn-primary";
+    }
+    if (cartMsg) {
+      cartMsg.style.display = "none";
+      cartMsg.innerText = "";
+    }
+    
+    if (checkInput) {
+      checkInput.value = "";
+      checkInput.disabled = false;
+    }
+    if (checkBtn) {
+      checkBtn.innerText = "Apply";
+      checkBtn.className = "btn btn-primary";
+    }
+    if (checkMsg) {
+      checkMsg.style.display = "none";
+      checkMsg.innerText = "";
+    }
+  }
+}
+
 // Update Cart totals and displays
 function updateCartDisplay() {
   const stickyPanel = document.getElementById("sticky-cart-panel");
@@ -991,7 +1133,12 @@ function updateCartDisplay() {
   const settings = TFL_DB.getSettings();
   const delivery = cartSubtotal > 0 ? settings.deliveryCharge : 0;
   const lateNight = (cartSubtotal > 0 && settings.lateNightFeeEnabled) ? settings.lateNightFeeAmount : 0;
-  const grandTotal = cartSubtotal + delivery + lateNight;
+  
+  let discountAmount = 0;
+  if (appliedPromoCode) {
+    discountAmount = Math.round(cartSubtotal * (appliedPromoCode.discountPercent / 100));
+  }
+  const grandTotal = cartSubtotal - discountAmount + delivery + lateNight;
   
   if (totalItems > 0) {
     stickyPanel.style.display = "flex";
@@ -1014,7 +1161,51 @@ function updateCartDisplay() {
     }
   }
   
+  const cartDiscountRow = document.getElementById("cart-discount-row");
+  const cartDiscountPercent = document.getElementById("cart-discount-percent");
+  const cartDiscountAmount = document.getElementById("cart-discount-amount");
+  if (cartDiscountRow && cartDiscountPercent && cartDiscountAmount) {
+    if (discountAmount > 0) {
+      cartDiscountRow.style.display = "flex";
+      cartDiscountPercent.innerText = appliedPromoCode.discountPercent;
+      cartDiscountAmount.innerText = `-₹${discountAmount.toFixed(2)}`;
+    } else {
+      cartDiscountRow.style.display = "none";
+    }
+  }
+  
   document.getElementById("cart-grand-total-price").innerText = `₹${grandTotal.toFixed(2)}`;
+
+  // Update Checkout summary display
+  const checkoutSubtotal = document.getElementById("checkout-subtotal-price");
+  const checkoutDiscountRow = document.getElementById("checkout-discount-row");
+  const checkoutDiscountPercent = document.getElementById("checkout-discount-percent");
+  const checkoutDiscountAmount = document.getElementById("checkout-discount-amount");
+  const checkoutDelivery = document.getElementById("checkout-delivery-charge");
+  const checkoutLateNightRow = document.getElementById("checkout-late-night-row");
+  const checkoutLateNightFee = document.getElementById("checkout-late-night-fee");
+  const checkoutGrandTotal = document.getElementById("checkout-grand-total-price");
+
+  if (checkoutSubtotal) checkoutSubtotal.innerText = `₹${cartSubtotal.toFixed(2)}`;
+  if (checkoutDelivery) checkoutDelivery.innerText = `₹${delivery.toFixed(2)}`;
+  if (checkoutLateNightRow && checkoutLateNightFee) {
+    if (lateNight > 0) {
+      checkoutLateNightRow.style.display = "flex";
+      checkoutLateNightFee.innerText = `₹${lateNight.toFixed(2)}`;
+    } else {
+      checkoutLateNightRow.style.display = "none";
+    }
+  }
+  if (checkoutDiscountRow && checkoutDiscountPercent && checkoutDiscountAmount) {
+    if (discountAmount > 0) {
+      checkoutDiscountRow.style.display = "flex";
+      checkoutDiscountPercent.innerText = appliedPromoCode.discountPercent;
+      checkoutDiscountAmount.innerText = `-₹${discountAmount.toFixed(2)}`;
+    } else {
+      checkoutDiscountRow.style.display = "none";
+    }
+  }
+  if (checkoutGrandTotal) checkoutGrandTotal.innerText = `₹${grandTotal.toFixed(2)}`;
   
   renderCartItems();
   lucide.createIcons();
@@ -1146,6 +1337,8 @@ function openCheckoutPanel() {
   resetCheckoutForm();
   toggleCartPanel(false);
   toggleCheckoutPanel(true);
+  syncPromoCodeInputs();
+  updateCartDisplay();
 }
 
 function resetCheckoutForm() {
@@ -1229,7 +1422,16 @@ async function submitOrder(event) {
   const cartSubtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
   const delivery = settings.deliveryCharge;
   const lateNight = settings.lateNightFeeEnabled ? settings.lateNightFeeAmount : 0;
-  const grandTotal = cartSubtotal + delivery + lateNight;
+  
+  let discountAmount = 0;
+  let promoCodeName = "";
+  let promoDiscountPercent = 0;
+  if (appliedPromoCode) {
+    promoCodeName = appliedPromoCode.code;
+    promoDiscountPercent = appliedPromoCode.discountPercent;
+    discountAmount = Math.round(cartSubtotal * (promoDiscountPercent / 100));
+  }
+  const grandTotal = cartSubtotal - discountAmount + delivery + lateNight;
   
   // Formulate items summary object array
   const orderedItems = cart.map(item => ({
@@ -1257,6 +1459,9 @@ async function submitOrder(event) {
     subtotal: cartSubtotal,
     deliveryCharge: delivery,
     lateNightFee: lateNight,
+    promoCode: promoCodeName,
+    discountPercent: promoDiscountPercent,
+    discountAmount: discountAmount,
     grandTotal: grandTotal,
     status: "Pending", // Status defaults to Pending
     orderDate: new Date().toLocaleString(),
@@ -1273,6 +1478,7 @@ async function submitOrder(event) {
   
   // Clear cart and clean inputs
   cart = [];
+  appliedPromoCode = null;
   sessionStorage.removeItem("tfl_customer_cart");
   document.getElementById("checkout-form").reset();
   updateCartDisplay();
@@ -1340,6 +1546,12 @@ function openReceiptModal(order) {
         <span>Subtotal</span>
         <span>₹${order.subtotal.toFixed(2)}</span>
       </div>
+      ${order.promoCode ? `
+      <div class="receipt-total-row" style="color: var(--color-success);">
+        <span>Discount (${order.promoCode} - ${order.discountPercent}%)</span>
+        <span>-₹${(order.discountAmount || 0).toFixed(2)}</span>
+      </div>
+      ` : ''}
       <div class="receipt-total-row">
         <span>Delivery Charges</span>
         <span>₹${order.deliveryCharge.toFixed(2)}</span>
@@ -1424,11 +1636,17 @@ function recalculateReceiptOrderTotals(order) {
   const subtotal = (order.items || []).reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const delivery = subtotal > 0 ? settings.deliveryCharge : 0;
   const lateNight = (subtotal > 0 && settings.lateNightFeeEnabled) ? settings.lateNightFeeAmount : 0;
-  const grandTotal = subtotal + delivery + lateNight;
+  
+  let discountAmount = 0;
+  if (order.promoCode && order.discountPercent) {
+    discountAmount = Math.round(subtotal * (order.discountPercent / 100));
+  }
+  const grandTotal = subtotal - discountAmount + delivery + lateNight;
   
   order.subtotal = subtotal;
   order.deliveryCharge = delivery;
   order.lateNightFee = lateNight;
+  order.discountAmount = discountAmount;
   order.grandTotal = grandTotal;
 }
 
@@ -1567,6 +1785,9 @@ function sendOrderWhatsApp(options = {}) {
   
   message += `--------------------------------------\n`;
   message += `Subtotal: Rs ${currentReceiptOrder.subtotal}\n`;
+  if (currentReceiptOrder.promoCode) {
+    message += `Discount (${currentReceiptOrder.promoCode} - ${currentReceiptOrder.discountPercent}%): -Rs ${currentReceiptOrder.discountAmount}\n`;
+  }
   message += `Delivery Charges: Rs ${currentReceiptOrder.deliveryCharge}\n`;
   if (currentReceiptOrder.lateNightFee && currentReceiptOrder.lateNightFee > 0) {
     message += `Late Night Fee: Rs ${currentReceiptOrder.lateNightFee}\n`;

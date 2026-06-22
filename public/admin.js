@@ -123,6 +123,7 @@ function restrictUI() {
   const tabProducts = document.getElementById("tab-products");
   const tabSubBrands = document.getElementById("tab-subbrands");
   const tabAnnouncements = document.getElementById("tab-announcements");
+  const tabPromoCodes = document.getElementById("tab-promocodes");
   const tabCustomization = document.getElementById("tab-customization");
   const tabAdmins = document.getElementById("tab-admins");
   const tabSettings = document.getElementById("tab-settings");
@@ -131,28 +132,30 @@ function restrictUI() {
   const btnClearDelivered = document.getElementById("btn-clear-delivered");
   
   // Reset visibility
-  tabProducts.style.display = "flex";
-  tabSubBrands.style.display = "flex";
-  tabAnnouncements.style.display = "flex";
-  tabCustomization.style.display = "flex";
-  tabAdmins.style.display = "flex";
-  tabSettings.style.display = "flex";
+  if (tabProducts) tabProducts.style.display = "flex";
+  if (tabSubBrands) tabSubBrands.style.display = "flex";
+  if (tabAnnouncements) tabAnnouncements.style.display = "flex";
+  if (tabPromoCodes) tabPromoCodes.style.display = "flex";
+  if (tabCustomization) tabCustomization.style.display = "flex";
+  if (tabAdmins) tabAdmins.style.display = "flex";
+  if (tabSettings) tabSettings.style.display = "flex";
   if (btnClearDelivered) btnClearDelivered.style.display = "inline-flex";
   
   if (role === "Staff") {
     // Staff can only manage orders
-    tabProducts.style.display = "none";
-    tabSubBrands.style.display = "none";
-    tabAnnouncements.style.display = "none";
-    tabCustomization.style.display = "none";
-    tabAdmins.style.display = "none";
-    tabSettings.style.display = "none";
+    if (tabProducts) tabProducts.style.display = "none";
+    if (tabSubBrands) tabSubBrands.style.display = "none";
+    if (tabAnnouncements) tabAnnouncements.style.display = "none";
+    if (tabPromoCodes) tabPromoCodes.style.display = "none";
+    if (tabCustomization) tabCustomization.style.display = "none";
+    if (tabAdmins) tabAdmins.style.display = "none";
+    if (tabSettings) tabSettings.style.display = "none";
     if (btnClearDelivered) btnClearDelivered.style.display = "none";
   } else if (role === "Manager") {
     // Managers can manage products & categories, but not settings/admins/brand
-    tabCustomization.style.display = "none";
-    tabAdmins.style.display = "none";
-    tabSettings.style.display = "none";
+    if (tabCustomization) tabCustomization.style.display = "none";
+    if (tabAdmins) tabAdmins.style.display = "none";
+    if (tabSettings) tabSettings.style.display = "none";
   }
   
   // Check if Google Sheet Sync or Supabase Sync is enabled overall to show button
@@ -288,6 +291,7 @@ function switchTab(tabId) {
     products: "Menu Formulations Manager",
     subbrands: "Sub-Brands & Categorization",
     announcements: "Updates & Offers announcements",
+    promocodes: "Promo Codes Manager",
     customization: "Aesthetic Brand Customizer",
     admins: "Operations Staff Access",
     settings: "System Operational Settings"
@@ -326,6 +330,9 @@ function renderTabContent(tabId) {
       break;
     case 'announcements':
       renderUpdatesTable();
+      break;
+    case 'promocodes':
+      renderPromoCodesTable();
       break;
     case 'customization':
       renderCustomizationForm();
@@ -487,7 +494,10 @@ function renderDashboard() {
         <div style="font-size: 0.75rem; color: var(--color-text-muted);">${order.customerPhone}</div>
       </td>
       <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${itemsSummary}">${itemsSummary}</td>
-      <td style="font-weight: 700;">₹${order.grandTotal}</td>
+      <td style="font-weight: 700;">
+        <div>₹${order.grandTotal}</div>
+        ${order.promoCode ? `<div style="font-size: 0.72rem; color: var(--color-success); font-weight: normal;">Code: ${order.promoCode} (-₹${order.discountAmount})</div>` : ''}
+      </td>
       <td>${order.paymentMode}</td>
       <td><span class="status-pill status-${(order.paymentStatus || 'Unpaid').toLowerCase()}">${order.paymentStatus || 'Unpaid'}</span></td>
       <td><span class="status-pill status-${order.status.toLowerCase()}">${order.status}</span></td>
@@ -602,6 +612,7 @@ function renderOrdersTable() {
       <td style="font-size: 0.8rem; line-height: 1.4;">${itemsDetailHtml}</td>
       <td>
         <div style="font-weight: 700; color: #fff;">₹${order.grandTotal}</div>
+        ${order.promoCode ? `<div style="font-size: 0.72rem; color: var(--color-success);">Code: ${order.promoCode} (-₹${order.discountAmount})</div>` : ''}
         ${financialInfoHtml}
       </td>
       <td style="font-size: 0.8rem;">${order.paymentMode}</td>
@@ -891,9 +902,12 @@ function resendOrderDetailsWhatsApp(orderId) {
   });
   
   message += `--------------------------------------\n`;
+  message += `Subtotal: Rs ${order.subtotal}\n`;
+  if (order.promoCode) {
+    message += `Discount (${order.promoCode} - ${order.discountPercent}%): -Rs ${order.discountAmount}\n`;
+  }
+  message += `Delivery Charges: Rs ${order.deliveryCharge}\n`;
   if (order.lateNightFee && order.lateNightFee > 0) {
-    message += `Subtotal: Rs ${order.subtotal}\n`;
-    message += `Delivery Charges: Rs ${order.deliveryCharge}\n`;
     message += `Late Night Fee: Rs ${order.lateNightFee}\n`;
   }
   message += `Grand Total: Rs ${order.grandTotal}\n`;
@@ -914,7 +928,7 @@ function exportOrdersCSV() {
   }
   
   let csvContent = "data:text/csv;charset=utf-8,";
-  csvContent += "Order ID,Date,Name,WhatsApp,Address,Items,Subtotal,Delivery,Late Night Fee,Revenue,Cost,Net Profit,Payment Mode,Payment Status,Delivery Status\n";
+  csvContent += "Order ID,Date,Name,WhatsApp,Address,Items,Subtotal,Promo Code,Discount %,Discount Amount,Delivery,Late Night Fee,Revenue,Cost,Net Profit,Payment Mode,Payment Status,Delivery Status\n";
   
   orders.forEach(o => {
     const itemsText = o.items.map(i => `${i.name} x${i.quantity}`).join(" | ");
@@ -942,7 +956,7 @@ function exportOrdersCSV() {
     const revenue = o.grandTotal;
     const netProfit = revenue - orderCost;
     
-    csvContent += `"${o.id}","${o.orderDate}","${o.customerName}","${o.customerPhone}","${escapedAddress}","${itemsText}",${o.subtotal},${o.deliveryCharge},${o.lateNightFee || 0},${revenue},${orderCost},${netProfit},"${o.paymentMode}","${o.paymentStatus || 'Unpaid'}","${o.status}"\n`;
+    csvContent += `"${o.id}","${o.orderDate}","${o.customerName}","${o.customerPhone}","${escapedAddress}","${itemsText}",${o.subtotal},"${o.promoCode || ''}",${o.discountPercent || 0},${o.discountAmount || 0},${o.deliveryCharge},${o.lateNightFee || 0},${revenue},${orderCost},${netProfit},"${o.paymentMode}","${o.paymentStatus || 'Unpaid'}","${o.status}"\n`;
   });
   
   const encodedUri = encodeURI(csvContent);
@@ -1023,6 +1037,12 @@ function printReceiptFromAdmin(orderId) {
           <td>Subtotal</td>
           <td style="text-align: right;">₹${order.subtotal.toFixed(2)}</td>
         </tr>
+        ${order.promoCode ? `
+        <tr style="color: green;">
+          <td>Discount (${order.promoCode} - ${order.discountPercent}%)</td>
+          <td style="text-align: right;">-₹${(order.discountAmount || 0).toFixed(2)}</td>
+        </tr>
+        ` : ''}
         <tr>
           <td>Delivery Charge</td>
           <td style="text-align: right;">₹${order.deliveryCharge.toFixed(2)}</td>
@@ -1649,6 +1669,138 @@ async function deleteUpdate(updateId) {
   }
 }
 
+// --- TAB: PROMO CODES LOGIC (CRUD) ---
+function renderPromoCodesTable() {
+  const promocodes = TFL_DB.getPromoCodes ? TFL_DB.getPromoCodes() : [];
+  const container = document.getElementById("promocodes-admin-list");
+  if (!container) return;
+  container.innerHTML = "";
+  
+  if (promocodes.length === 0) {
+    container.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: center; color: var(--color-text-muted);">
+          No promo codes formulated yet. Click 'Add Promo Code' to begin!
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  promocodes.forEach(p => {
+    const activeBadge = p.active 
+      ? `<span class="badge badge-veg">Active</span>` 
+      : `<span class="badge badge-nonveg">Inactive</span>`;
+      
+    const todayStr = new Date().toISOString().split('T')[0];
+    const isExpired = p.validTill && p.validTill < todayStr;
+    const expiredLabel = isExpired 
+      ? `<span class="badge badge-nonveg" style="margin-left: 4px;">Expired</span>` 
+      : '';
+
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td><strong style="color: #fff; text-transform: uppercase;">${p.code}</strong></td>
+      <td><strong>${p.discountPercent}%</strong></td>
+      <td>
+        <span>${p.validTill || 'No Expiry'}</span>
+        ${expiredLabel}
+      </td>
+      <td>
+        <label class="checkbox-label" style="font-size: 0.8rem; margin: 0;">
+          <input type="checkbox" class="checkbox-custom" ${p.active ? 'checked' : ''} onchange="togglePromoCodeActive('${p.code}', this.checked)">
+          <span>${p.active ? 'Active' : 'Inactive'}</span>
+        </label>
+      </td>
+      <td>
+        <div style="display: flex; gap: 4px;">
+          <button class="btn btn-secondary btn-sm" onclick="openPromoCodeModal('${p.code}')" style="padding: 4px 8px;">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deletePromoCode('${p.code}')" style="padding: 4px 8px;"><i data-lucide="trash" style="width: 12px; height: 12px;"></i></button>
+        </div>
+      </td>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function openPromoCodeModal(codeName = null) {
+  if (codeName) {
+    const p = TFL_DB.getPromoCodes().find(x => x.code === codeName);
+    document.getElementById("promocode-modal-title").innerText = "Modify Promo Code";
+    document.getElementById("promocode-modal-id").value = p.code;
+    document.getElementById("pc-code").value = p.code;
+    document.getElementById("pc-code").disabled = true;
+    document.getElementById("pc-discount").value = p.discountPercent;
+    document.getElementById("pc-valid-till").value = p.validTill || "";
+    document.getElementById("pc-active").checked = p.active;
+  } else {
+    document.getElementById("promocode-modal-title").innerText = "Configure New Promo Code";
+    document.getElementById("promocode-form").reset();
+    document.getElementById("promocode-modal-id").value = "";
+    document.getElementById("pc-code").disabled = false;
+    document.getElementById("pc-valid-till").value = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    document.getElementById("pc-active").checked = true;
+  }
+  document.getElementById("promocode-modal").classList.add("active");
+  document.getElementById("admin-modal-backdrop").classList.add("active");
+}
+
+function closePromoCodeModal() {
+  document.getElementById("promocode-modal").classList.remove("active");
+  document.getElementById("admin-modal-backdrop").classList.remove("active");
+}
+
+async function handlePromoCodeSubmit(event) {
+  event.preventDefault();
+  const id = document.getElementById("promocode-modal-id").value;
+  const code = document.getElementById("pc-code").value.trim().toUpperCase();
+  const discountPercent = parseFloat(document.getElementById("pc-discount").value) || 0;
+  const validTill = document.getElementById("pc-valid-till").value;
+  const active = document.getElementById("pc-active").checked;
+  
+  const promocodes = TFL_DB.getPromoCodes ? TFL_DB.getPromoCodes() : [];
+  
+  if (id) {
+    const index = promocodes.findIndex(x => x.code === id);
+    if (index !== -1) {
+      promocodes[index] = { code: id, discountPercent, validTill, active };
+    }
+  } else {
+    const exists = promocodes.some(x => x.code.toUpperCase() === code);
+    if (exists) {
+      TFL_DB.showToast("This promo code name already exists.", "error");
+      return;
+    }
+    promocodes.push({ code, discountPercent, validTill, active });
+  }
+  
+  TFL_DB.savePromoCodes(promocodes);
+  closePromoCodeModal();
+  renderPromoCodesTable();
+  triggerBackgroundSync();
+}
+
+async function togglePromoCodeActive(codeName, isChecked) {
+  const promocodes = TFL_DB.getPromoCodes ? TFL_DB.getPromoCodes() : [];
+  const index = promocodes.findIndex(x => x.code === codeName);
+  if (index !== -1) {
+    promocodes[index].active = isChecked;
+    TFL_DB.savePromoCodes(promocodes);
+    renderPromoCodesTable();
+    triggerBackgroundSync();
+  }
+}
+
+async function deletePromoCode(codeName) {
+  if (confirm(`Are you sure you want to delete promo code ${codeName}?`)) {
+    const promocodes = TFL_DB.getPromoCodes ? TFL_DB.getPromoCodes() : [];
+    const filtered = promocodes.filter(x => x.code !== codeName);
+    TFL_DB.savePromoCodes(filtered);
+    renderPromoCodesTable();
+    triggerBackgroundSync();
+  }
+}
+
 // --- TAB: BRAND CUSTOMIZATION FORM LOGIC ---
 function renderCustomizationForm() {
   const settings = TFL_DB.getSettings();
@@ -1862,6 +2014,7 @@ function closeAllModals() {
   closeSubBrandModal();
   closeUpdateModal();
   closeAdminModal();
+  closePromoCodeModal();
 }
 
 // --- SYNC SERVICES ---

@@ -230,6 +230,11 @@ const DEFAULT_UPDATES = [
   }
 ];
 
+const DEFAULT_PROMOCODES = [
+  { code: "TFL20", discountPercent: 20, validTill: "2026-12-31", active: true },
+  { code: "WELCOME50", discountPercent: 50, validTill: "2026-12-31", active: true }
+];
+
 const TFL_DB = {
   _cache: {},
   _broadcastChannel: null,
@@ -462,6 +467,7 @@ const TFL_DB = {
     if (!localStorage.getItem("tfl_products")) this.setLocal("products", DEFAULT_PRODUCTS);
     if (!localStorage.getItem("tfl_admins")) this.setLocal("admins", DEFAULT_ADMINS);
     if (!localStorage.getItem("tfl_updates")) this.setLocal("updates", DEFAULT_UPDATES);
+    if (!localStorage.getItem("tfl_promocodes")) this.setLocal("promocodes", DEFAULT_PROMOCODES);
     if (!localStorage.getItem("tfl_orders")) this.setLocal("orders", []);
 
     // Pre-warm/prime the cache for all known keys so subsequent reads are instant
@@ -470,6 +476,7 @@ const TFL_DB = {
     this.getLocal("products", DEFAULT_PRODUCTS);
     this.getLocal("admins", DEFAULT_ADMINS);
     this.getLocal("updates", DEFAULT_UPDATES);
+    this.getLocal("promocodes", DEFAULT_PROMOCODES);
     this.getLocal("orders", []);
 
     this.applyThemeColors();
@@ -547,6 +554,9 @@ const TFL_DB = {
 
   getSubBrands() { return this.normalizeSubBrandIds(this.getLocal("subbrands", DEFAULT_SUBBRANDS)); },
   saveSubBrands(subbrands) { this.setLocal("subbrands", this.normalizeSubBrandIds(subbrands)); },
+
+  getPromoCodes() { return this.getLocal("promocodes", DEFAULT_PROMOCODES); },
+  savePromoCodes(promocodes) { this.setLocal("promocodes", promocodes); },
 
   getOrders() { return this.getLocal("orders", []); },
   saveOrders(orders) { this.setLocal("orders", orders); },
@@ -803,7 +813,7 @@ const TFL_DB = {
     this.updateSyncState({ syncing: true, lastError: null });
 
     try {
-      const metadataRows = ["settings", "products", "subbrands", "updates", "admins"].map(key => ({
+      const metadataRows = ["settings", "products", "subbrands", "updates", "admins", "promocodes"].map(key => ({
         key,
         value: key === "settings" ? this.getSettings() : this.getLocal(key, [])
       }));
@@ -950,6 +960,7 @@ const TFL_DB = {
         if (result.orders) this.setLocal("orders", result.orders);
         if (result.updates) this.setLocal("updates", result.updates);
         if (result.admins) this.setLocal("admins", result.admins);
+        if (result.promocodes) this.setLocal("promocodes", result.promocodes);
         
         this.applyThemeColors();
         return result;
@@ -975,6 +986,7 @@ const TFL_DB = {
       subbrands: this.getSubBrands(),
       updates: this.getUpdates(),
       admins: this.getAdmins(),
+      promocodes: this.getPromoCodes(),
       orders: this.getOrders()
     };
 
