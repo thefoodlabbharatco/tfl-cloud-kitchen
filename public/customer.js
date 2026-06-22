@@ -1,5 +1,19 @@
 // customer.js - Customer Front-end Interactivity for The Food Lab (TFL)
 
+// Global Error Handler for Mobile Debugging
+window.onerror = function(message, source, lineno, colno, error) {
+  const errorMsg = error ? error.message : message;
+  TFL_DB.showToast(`JS Error: ${errorMsg} at ${source}:${lineno}`, "error");
+  console.error("Global Error:", errorMsg, error);
+  return false;
+};
+
+window.onunhandledrejection = function(event) {
+  const reason = event.reason ? (event.reason.message || event.reason) : "Unknown rejection";
+  TFL_DB.showToast(`Promise Rejection: ${reason}`, "error");
+  console.error("Global Promise Rejection:", reason, event);
+};
+
 // Global State
 let cart = [];
 let activeSubBrand = 'all';
@@ -333,7 +347,11 @@ function renderProducts() {
   products = products.filter(p => !p.unlisted);
   
   // Filter out products belonging to hidden sub-brands
-  const visibleSubBrands = new Set(TFL_DB.getSubBrands().filter(s => s.visible).map(s => s.id));
+  const visibleSubBrands = new Set(
+    TFL_DB.getSubBrands()
+      .filter(s => s && (s.visible === true || s.visible === "true" || s.visible === 1 || s.visible === "1"))
+      .map(s => s.id)
+  );
   products = products.filter(p => visibleSubBrands.has(p.category));
   
   // Apply category filter
@@ -728,7 +746,11 @@ function openAddonsModal(product) {
     if (pairings.length > 0) {
       pairingsContainer.style.display = "block";
       const allProducts = TFL_DB.getProducts();
-      const visibleSubBrands = new Set(TFL_DB.getSubBrands().filter(s => s.visible).map(s => s.id));
+      const visibleSubBrands = new Set(
+        TFL_DB.getSubBrands()
+          .filter(s => s && (s.visible === true || s.visible === "true" || s.visible === 1 || s.visible === "1"))
+          .map(s => s.id)
+      );
       
       pairings.forEach(pId => {
         const pairedProd = allProducts.find(p => p.id === pId && !p.unlisted && p.inStock && visibleSubBrands.has(p.category));
