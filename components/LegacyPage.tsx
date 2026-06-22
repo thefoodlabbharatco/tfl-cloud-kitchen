@@ -33,9 +33,9 @@ export default function LegacyPage({ title, description, bodyHtml, pageScript, b
       loadScript("https://unpkg.com/lucide@latest"),
       loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2")
     ])
-      .then(() => loadScript(assetPath(basePath, "runtime-config.js")))
-      .then(() => loadScript(assetPath(basePath, "db.js")))
-      .then(() => loadScript(assetPath(basePath, pageScript)))
+      .then(() => loadScript(assetPath(basePath, "runtime-config.js?v=46")))
+      .then(() => loadScript(assetPath(basePath, "db.js?v=46")))
+      .then(() => loadScript(assetPath(basePath, pageScript + "?v=46")))
       .catch((err) => console.error("Legacy script loading failed:", err));
   }, [basePath, pageScript]);
 
@@ -74,11 +74,11 @@ export default function LegacyPage({ title, description, bodyHtml, pageScript, b
         <link rel="manifest" href={assetPath(basePath, "manifest.json?v=43")} />
         <link rel="preload" as="image" href={assetPath(basePath, "tfl_hero.png")} />
         <link rel="preload" as="image" href={assetPath(basePath, "tfl_logo.png")} />
-        <link rel="preload" as="script" href={assetPath(basePath, "runtime-config.js")} />
-        <link rel="preload" as="script" href={assetPath(basePath, "db.js")} />
-        <link rel="preload" as="script" href={assetPath(basePath, pageScript)} />
-        <link rel="stylesheet" href={assetPath(basePath, "style.css")} />
-        <link rel="stylesheet" href={assetPath(basePath, pageScript === "admin.js" ? "admin.css" : "customer.css")} />
+        <link rel="preload" as="script" href={assetPath(basePath, "runtime-config.js?v=46")} />
+        <link rel="preload" as="script" href={assetPath(basePath, "db.js?v=46")} />
+        <link rel="preload" as="script" href={assetPath(basePath, pageScript + "?v=46")} />
+        <link rel="stylesheet" href={assetPath(basePath, "style.css?v=46")} />
+        <link rel="stylesheet" href={assetPath(basePath, (pageScript === "admin.js" ? "admin.css" : "customer.css") + "?v=46")} />
       </Head>
 
       <div dangerouslySetInnerHTML={{ __html: bodyHtml }} />
