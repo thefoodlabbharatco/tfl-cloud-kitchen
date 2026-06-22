@@ -62,6 +62,20 @@ export default function LegacyPage({ title, description, bodyHtml, pageScript, b
         <title>{title}</title>
         <meta name="description" content={description} />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <script dangerouslySetInnerHTML={{ __html: `
+          if ('serviceWorker' in navigator && !localStorage.getItem('tfl_sw_cleaned_v46')) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              for (var i = 0; i < regs.length; i++) { regs[i].unregister(); }
+            });
+            if ('caches' in window) {
+              caches.keys().then(function(keys) {
+                for (var i = 0; i < keys.length; i++) { caches.delete(keys[i]); }
+              });
+            }
+            localStorage.setItem('tfl_sw_cleaned_v46', 'true');
+            setTimeout(function() { window.location.reload(); }, 200);
+          }
+        ` }} />
         <meta name="theme-color" content="#16a34a" />
         <link rel="icon" type="image/x-icon" href={assetPath(basePath, "favicon.ico?v=43")} />
         <link rel="icon" type="image/png" sizes="32x32" href={assetPath(basePath, "favicon-32.png?v=43")} />
