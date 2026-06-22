@@ -608,6 +608,7 @@ function renderOrdersTable() {
         <strong>${order.customerName} ${order.customerGender ? `(${order.customerGender})` : ''}</strong><br>
         WhatsApp: <a href="https://wa.me/${formatWhatsAppNumber(order.customerPhone)}" target="_blank" style="color: var(--color-primary); text-decoration: none;">${order.customerPhone}</a><br>
         <span style="font-size: 0.75rem; color: var(--color-text-muted); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${order.customerAddress}">${order.customerAddress}</span>
+        ${order.customerIp ? `<span style="font-size: 0.7rem; color: var(--color-warning); display: block; margin-top: 2px;">IP: ${order.customerIp}</span>` : ''}
       </td>
       <td style="font-size: 0.8rem; line-height: 1.4;">${itemsDetailHtml}</td>
       <td>

@@ -1449,6 +1449,20 @@ function generateOrderCode() {
 async function submitOrder(event) {
   event.preventDefault();
   
+  let clientIp = "Unknown";
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1200);
+    const ipRes = await fetch("https://api.ipify.org?format=json", { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (ipRes.ok) {
+      const ipData = await ipRes.json();
+      clientIp = ipData.ip || "Unknown";
+    }
+  } catch (e) {
+    console.warn("Failed to fetch client IP:", e);
+  }
+  
   const settings = TFL_DB.getSettings();
   if (!settings.isOpen) {
     TFL_DB.showToast("Our kitchen is currently closed. Order cannot be placed.", "error");
@@ -1510,7 +1524,8 @@ async function submitOrder(event) {
     grandTotal: grandTotal,
     status: "Pending", // Status defaults to Pending
     orderDate: new Date().toLocaleString(),
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    customerIp: clientIp
   };
   
   // Save order to Local Database
