@@ -472,6 +472,31 @@ const TFL_DB = {
     if (!localStorage.getItem("tfl_promocodes")) this.setLocal("promocodes", DEFAULT_PROMOCODES);
     if (!localStorage.getItem("tfl_orders")) this.setLocal("orders", []);
 
+    // Migration: ensure supabaseEnabled is true if DEFAULT_SETTINGS has it as true
+    try {
+      const localSettings = this.getLocal("settings", null);
+      if (localSettings) {
+        let changed = false;
+        if (DEFAULT_SETTINGS.supabaseEnabled && !localSettings.supabaseEnabled) {
+          localSettings.supabaseEnabled = true;
+          changed = true;
+        }
+        if (!localSettings.supabaseUrl && DEFAULT_SETTINGS.supabaseUrl) {
+          localSettings.supabaseUrl = DEFAULT_SETTINGS.supabaseUrl;
+          changed = true;
+        }
+        if (!localSettings.supabaseKey && DEFAULT_SETTINGS.supabaseKey) {
+          localSettings.supabaseKey = DEFAULT_SETTINGS.supabaseKey;
+          changed = true;
+        }
+        if (changed) {
+          this.setLocal("settings", localSettings);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to migrate local settings:", e);
+    }
+
     // Pre-warm/prime the cache for all known keys so subsequent reads are instant
     this.getLocal("settings", DEFAULT_SETTINGS);
     this.getLocal("subbrands", DEFAULT_SUBBRANDS);
