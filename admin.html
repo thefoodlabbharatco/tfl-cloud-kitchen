@@ -1018,7 +1018,7 @@ with check (bucket_id = 'product-images');</pre>
           <div class="form-row" style="align-items: flex-end;">
             <div class="form-group" style="flex: 2;">
               <label class="form-label" for="mo-product-select">Product *</label>
-              <select id="mo-product-select" class="form-control">
+              <select id="mo-product-select" class="form-control" onchange="handleManualProductSelectChange()">
                 <!-- Populated dynamically -->
               </select>
             </div>
@@ -1028,6 +1028,13 @@ with check (bucket_id = 'product-images');</pre>
             </div>
             <div class="form-group" style="flex: 0 0 auto;">
               <button type="button" class="btn btn-primary" onclick="addManualOrderItem()" style="height: 36px; padding: 0 16px;">Add Item</button>
+            </div>
+          </div>
+          
+          <div id="mo-condiments-container" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: var(--space-sm); margin-top: var(--space-sm); display: none;">
+            <label class="form-label" style="margin-bottom: 6px; display: block; font-weight: 600; color: #fff;">Select Add-ons / Condiments</label>
+            <div id="mo-condiments-list" style="display: flex; flex-direction: column; gap: var(--space-xs);">
+              <!-- Rendered dynamically by JS -->
             </div>
           </div>
         </div>
@@ -1058,6 +1065,17 @@ with check (bucket_id = 'product-images');</pre>
         <div style="background: rgba(22, 163, 74, 0.1); border: 1px solid rgba(22, 163, 74, 0.3); border-radius: var(--radius-sm); padding: var(--space-sm); display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-md);">
           <span style="font-weight: 600; color: #fff;">Grand Total:</span>
           <span id="mo-grand-total" style="font-size: 1.2rem; font-weight: 700; color: var(--color-success);">₹0.00</span>
+        </div>
+
+        <div id="mo-finance-summary" style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: var(--space-sm); margin-top: var(--space-sm); display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--color-text-muted);">Total Cost Price:</span>
+            <span id="mo-total-cost" style="color: #fff; font-weight: 600;">₹0.00</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: var(--color-text-muted);">Estimated Profit:</span>
+            <span id="mo-estimated-profit" style="color: var(--color-success); font-weight: 600;">₹0.00</span>
+          </div>
         </div>
       </div>
       <div class="modal-footer">

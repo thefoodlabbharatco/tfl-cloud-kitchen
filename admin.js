@@ -451,15 +451,19 @@ function renderDashboard() {
     let orderCost = 0;
     order.items.forEach(item => {
       const origProd = products.find(p => p.id === item.id);
-      const itemCostPrice = origProd ? (origProd.costPrice || 0) : 0;
-      let itemCostTotal = itemCostPrice * item.quantity;
-      if (item.condiments && Array.isArray(item.condiments) && origProd && origProd.condiments) {
+      const baseCost = item.costPrice !== undefined ? item.costPrice : (origProd ? (origProd.costPrice || 0) : 0);
+      let itemCostTotal = baseCost * item.quantity;
+      if (item.condiments && Array.isArray(item.condiments)) {
         item.condiments.forEach(c => {
           const cName = typeof c === 'object' ? c.name : c;
           const cQty = typeof c === 'object' ? (c.quantity || 1) : 1;
-          const origCond = origProd.condiments.find(oc => oc.name === cName);
-          if (origCond) {
-            itemCostTotal += (origCond.costPrice || 0) * cQty;
+          if (typeof c === 'object' && c.costPrice !== undefined) {
+            itemCostTotal += c.costPrice * cQty;
+          } else if (origProd && origProd.condiments) {
+            const origCond = origProd.condiments.find(oc => oc.name === cName);
+            if (origCond) {
+              itemCostTotal += (origCond.costPrice || 0) * cQty;
+            }
           }
         });
       }
@@ -620,15 +624,19 @@ function renderOrdersTable() {
     let orderCost = 0;
     order.items.forEach(item => {
       const origProd = products.find(p => p.id === item.id);
-      const c = origProd ? (origProd.costPrice || 0) : 0;
-      let itemCostTotal = c * item.quantity;
-      if (item.condiments && Array.isArray(item.condiments) && origProd && origProd.condiments) {
+      const baseCost = item.costPrice !== undefined ? item.costPrice : (origProd ? (origProd.costPrice || 0) : 0);
+      let itemCostTotal = baseCost * item.quantity;
+      if (item.condiments && Array.isArray(item.condiments)) {
         item.condiments.forEach(cond => {
           const cName = typeof cond === 'object' ? cond.name : cond;
           const cQty = typeof cond === 'object' ? (cond.quantity || 1) : 1;
-          const origCond = origProd.condiments.find(oc => oc.name === cName);
-          if (origCond) {
-            itemCostTotal += (origCond.costPrice || 0) * cQty;
+          if (typeof cond === 'object' && cond.costPrice !== undefined) {
+            itemCostTotal += cond.costPrice * cQty;
+          } else if (origProd && origProd.condiments) {
+            const origCond = origProd.condiments.find(oc => oc.name === cName);
+            if (origCond) {
+              itemCostTotal += (origCond.costPrice || 0) * cQty;
+            }
           }
         });
       }
@@ -1000,15 +1008,19 @@ function exportOrdersCSV() {
     let orderCost = 0;
     o.items.forEach(item => {
       const origProd = products.find(p => p.id === item.id);
-      const itemCostPrice = origProd ? (origProd.costPrice || 0) : 0;
-      let itemCostTotal = itemCostPrice * item.quantity;
-      if (item.condiments && Array.isArray(item.condiments) && origProd && origProd.condiments) {
+      const baseCost = item.costPrice !== undefined ? item.costPrice : (origProd ? (origProd.costPrice || 0) : 0);
+      let itemCostTotal = baseCost * item.quantity;
+      if (item.condiments && Array.isArray(item.condiments)) {
         item.condiments.forEach(c => {
           const cName = typeof c === 'object' ? c.name : c;
           const cQty = typeof c === 'object' ? (c.quantity || 1) : 1;
-          const origCond = origProd.condiments.find(oc => oc.name === cName);
-          if (origCond) {
-            itemCostTotal += (origCond.costPrice || 0) * cQty;
+          if (typeof c === 'object' && c.costPrice !== undefined) {
+            itemCostTotal += c.costPrice * cQty;
+          } else if (origProd && origProd.condiments) {
+            const origCond = origProd.condiments.find(oc => oc.name === cName);
+            if (origCond) {
+              itemCostTotal += (origCond.costPrice || 0) * cQty;
+            }
           }
         });
       }
@@ -2494,6 +2506,50 @@ async function handleAdminImageUpload(input, targetInputId, statusId, options = 
 // --- OPERATIONS: MANUAL ORDER CREATION PANEL (CALL/WALK-IN) ---
 let manualOrderCart = [];
 
+function handleManualProductSelectChange() {
+  const select = document.getElementById("mo-product-select");
+  const productId = select.value;
+  const container = document.getElementById("mo-condiments-container");
+  const list = document.getElementById("mo-condiments-list");
+  
+  if (!container || !list) return;
+  
+  container.style.display = "none";
+  list.innerHTML = "";
+  
+  if (!productId) return;
+  
+  const products = TFL_DB.getProducts();
+  const product = products.find(p => p.id === productId);
+  if (!product || !product.condiments || product.condiments.length === 0) return;
+  
+  container.style.display = "block";
+  product.condiments.forEach((cond, idx) => {
+    const itemDiv = document.createElement("div");
+    itemDiv.style.display = "flex";
+    itemDiv.style.alignItems = "center";
+    itemDiv.style.justifyContent = "space-between";
+    itemDiv.style.gap = "8px";
+    itemDiv.style.fontSize = "0.78rem";
+    itemDiv.style.padding = "4px 0";
+    itemDiv.style.borderBottom = "1px dashed rgba(255,255,255,0.03)";
+    
+    itemDiv.innerHTML = `
+      <label class="checkbox-label" style="margin: 0; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+        <input type="checkbox" class="checkbox-custom mo-condiment-checkbox" data-index="${idx}" data-name="${cond.name}" data-price="${cond.price}" data-cost="${cond.costPrice || 0}" style="margin: 0;">
+        <span style="color: var(--color-text);">${cond.name} (Sell: +₹${cond.price || 0}, Cost: +₹${cond.costPrice || 0})</span>
+      </label>
+      <div style="display: flex; align-items: center; gap: 4px;">
+        <span style="color: var(--color-text-muted);">Qty:</span>
+        <input type="number" class="form-control mo-condiment-qty" data-index="${idx}" min="1" value="1" style="width: 50px; height: 26px; padding: 2px 4px; font-size: 0.75rem; border-radius: 4px; text-align: center; background: rgba(0,0,0,0.3); border: 1px solid var(--color-border); color: #fff;">
+      </div>
+    `;
+    list.appendChild(itemDiv);
+  });
+}
+
+window.handleManualProductSelectChange = handleManualProductSelectChange;
+
 function openManualOrderModal() {
   // Reset form inputs
   document.getElementById("manual-order-form").reset();
@@ -2508,6 +2564,10 @@ function openManualOrderModal() {
   document.getElementById("mo-delivery-charge").value = 40;
   document.getElementById("mo-late-night").value = 0;
   document.getElementById("mo-discount").value = 0;
+  
+  // Reset condiments container
+  document.getElementById("mo-condiments-container").style.display = "none";
+  document.getElementById("mo-condiments-list").innerHTML = "";
   
   // Populate products dropdown
   const select = document.getElementById("mo-product-select");
@@ -2534,6 +2594,19 @@ function openManualOrderModal() {
   renderManualOrderCart();
   recalculateManualOrderTotal();
   
+  // Populate condiments for default selected product
+  handleManualProductSelectChange();
+  
+  // Hide finance summary for Staff role
+  const financeSummary = document.getElementById("mo-finance-summary");
+  if (financeSummary) {
+    if (loggedInUser && loggedInUser.role === 'Staff') {
+      financeSummary.style.display = "none";
+    } else {
+      financeSummary.style.display = "flex";
+    }
+  }
+  
   // Show modal
   document.getElementById("manual-order-modal").classList.add("active");
   document.getElementById("admin-modal-backdrop").classList.add("active");
@@ -2557,22 +2630,79 @@ function addManualOrderItem() {
   const product = products.find(p => p.id === productId);
   if (!product) return;
   
-  const existingIdx = manualOrderCart.findIndex(item => item.id === productId);
+  // Collect selected condiments
+  const selectedCondiments = [];
+  const checkboxes = document.querySelectorAll(".mo-condiment-checkbox");
+  checkboxes.forEach(cb => {
+    if (cb.checked) {
+      const idx = cb.dataset.index;
+      const name = cb.dataset.name;
+      const price = parseFloat(cb.dataset.price) || 0;
+      const costPrice = parseFloat(cb.dataset.cost) || 0;
+      const qtyInput = document.querySelector(`.mo-condiment-qty[data-index="${idx}"]`);
+      const condQty = parseInt(qtyInput ? qtyInput.value : 1) || 1;
+      
+      selectedCondiments.push({
+        name: name,
+        price: price,
+        costPrice: costPrice,
+        quantity: condQty
+      });
+    }
+  });
+  
+  const basePrice = product.price;
+  const baseCost = product.costPrice || 0;
+  
+  const condimentsPrice = selectedCondiments.reduce((sum, c) => sum + (c.price * c.quantity), 0);
+  const condimentsCost = selectedCondiments.reduce((sum, c) => sum + (c.costPrice * c.quantity), 0);
+  
+  const unitPrice = basePrice + (condimentsPrice / qty);
+  
+  const areCondimentsEqual = (cond1, cond2) => {
+    if (cond1.length !== cond2.length) return false;
+    const sorted1 = [...cond1].sort((a,b) => a.name.localeCompare(b.name));
+    const sorted2 = [...cond2].sort((a,b) => a.name.localeCompare(b.name));
+    return sorted1.every((c, i) => c.name === sorted2[i].name && c.quantity === sorted2[i].quantity);
+  };
+  
+  const existingIdx = manualOrderCart.findIndex(item => item.id === productId && areCondimentsEqual(item.condiments, selectedCondiments));
   if (existingIdx !== -1) {
-    manualOrderCart[existingIdx].quantity += qty;
+    const prevQty = manualOrderCart[existingIdx].quantity;
+    const newQty = prevQty + qty;
+    
+    const prevCondPrice = manualOrderCart[existingIdx].condiments.reduce((sum, c) => sum + (c.price * c.quantity), 0);
+    const newCondPrice = prevCondPrice + condimentsPrice;
+    
+    manualOrderCart[existingIdx].quantity = newQty;
+    manualOrderCart[existingIdx].price = basePrice + (newCondPrice / newQty);
+    manualOrderCart[existingIdx].costPrice = baseCost;
+    
+    selectedCondiments.forEach(sc => {
+      const existingCond = manualOrderCart[existingIdx].condiments.find(c => c.name === sc.name);
+      if (existingCond) {
+        existingCond.quantity += sc.quantity;
+      } else {
+        manualOrderCart[existingIdx].condiments.push(sc);
+      }
+    });
   } else {
     manualOrderCart.push({
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: unitPrice,
+      costPrice: baseCost,
       quantity: qty,
-      condiments: [], // Simplified for manual administrative booking
-      category: product.category
+      condiments: selectedCondiments,
+      category: product.category,
+      subBrand: product.category
     });
   }
   
   // Reset quantity selector
   document.getElementById("mo-product-qty").value = 1;
+  handleManualProductSelectChange();
+  
   renderManualOrderCart();
   recalculateManualOrderTotal();
   TFL_DB.showToast(`${product.name} added to draft order`, "info");
@@ -2580,8 +2710,8 @@ function addManualOrderItem() {
 
 window.addManualOrderItem = addManualOrderItem;
 
-function deleteManualOrderItem(productId) {
-  manualOrderCart = manualOrderCart.filter(item => item.id !== productId);
+function deleteManualOrderItem(index) {
+  manualOrderCart.splice(index, 1);
   renderManualOrderCart();
   recalculateManualOrderTotal();
 }
@@ -2597,7 +2727,15 @@ function renderManualOrderCart() {
     return;
   }
   
-  manualOrderCart.forEach(item => {
+  manualOrderCart.forEach((item, idx) => {
+    const condimentNames = (item.condiments || []).map(c => {
+      const qtyText = c.quantity && c.quantity > 1 ? ` (x${c.quantity})` : '';
+      return `${c.name}${qtyText}`;
+    });
+    const condimentText = condimentNames.length > 0 
+      ? `<div style="font-size: 0.72rem; color: var(--color-primary); padding-left: 8px; margin-top: 2px;">+ Add-ons: ${condimentNames.join(', ')}</div>` 
+      : '';
+      
     const div = document.createElement("div");
     div.style.display = "flex";
     div.style.justifyContent = "space-between";
@@ -2607,10 +2745,13 @@ function renderManualOrderCart() {
     div.style.borderRadius = "var(--radius-sm)";
     div.style.fontSize = "0.8rem";
     div.innerHTML = `
-      <span style="color: #fff;">${item.name} x <strong>${item.quantity}</strong></span>
+      <div style="display: flex; flex-direction: column;">
+        <span style="color: #fff;">${item.name} x <strong>${item.quantity}</strong></span>
+        ${condimentText}
+      </div>
       <div style="display: flex; align-items: center; gap: 10px;">
         <span style="color: var(--color-primary); font-weight: 600;">₹${(item.price * item.quantity).toFixed(2)}</span>
-        <button type="button" class="mini-delete-btn" onclick="deleteManualOrderItem('${item.id}')" style="background: none; border: none; color: var(--color-danger); cursor: pointer; font-size: 1.2rem; padding: 0 4px; line-height: 1;">&times;</button>
+        <button type="button" class="mini-delete-btn" onclick="deleteManualOrderItem(${idx})" style="background: none; border: none; color: var(--color-danger); cursor: pointer; font-size: 1.2rem; padding: 0 4px; line-height: 1;">&times;</button>
       </div>
     `;
     list.appendChild(div);
@@ -2621,12 +2762,36 @@ window.renderManualOrderCart = renderManualOrderCart;
 
 function recalculateManualOrderTotal() {
   const subtotal = manualOrderCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  
+  // Calculate total cost price of the draft manual order
+  let totalCost = 0;
+  manualOrderCart.forEach(item => {
+    let itemCostTotal = (item.costPrice || 0) * item.quantity;
+    if (item.condiments && Array.isArray(item.condiments)) {
+      item.condiments.forEach(c => {
+        itemCostTotal += (c.costPrice || 0) * (c.quantity || 1);
+      });
+    }
+    totalCost += itemCostTotal;
+  });
+  
   const deliveryCharge = parseFloat(document.getElementById("mo-delivery-charge").value) || 0;
   const lateNightFee = parseFloat(document.getElementById("mo-late-night").value) || 0;
   const discountAmount = parseFloat(document.getElementById("mo-discount").value) || 0;
   
   const grandTotal = Math.max(0, subtotal + deliveryCharge + lateNightFee - discountAmount);
+  const estimatedProfit = grandTotal - totalCost;
+  
   document.getElementById("mo-grand-total").innerText = `₹${grandTotal.toFixed(2)}`;
+  document.getElementById("mo-total-cost").innerText = `₹${totalCost.toFixed(2)}`;
+  
+  const profitEl = document.getElementById("mo-estimated-profit");
+  profitEl.innerText = `₹${estimatedProfit.toFixed(2)}`;
+  if (estimatedProfit < 0) {
+    profitEl.style.color = "var(--color-danger)";
+  } else {
+    profitEl.style.color = "var(--color-success)";
+  }
 }
 
 window.recalculateManualOrderTotal = recalculateManualOrderTotal;
