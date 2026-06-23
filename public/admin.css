@@ -884,6 +884,8 @@ body {
 
 .main-content {
   margin-left: 244px !important;
+  width: calc(100% - 244px) !important;
+  max-width: calc(100% - 244px) !important;
   padding: 20px clamp(18px, 3vw, 34px) 34px;
   min-width: 0;
 }
@@ -1256,6 +1258,8 @@ div[style*="font-weight: 700; color: #fff"] {
 
   .main-content {
     margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
     padding: 16px;
   }
 
