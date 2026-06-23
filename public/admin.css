@@ -1564,6 +1564,7 @@ body:not(.light-theme) select.form-control option {
   background: #111114 !important;
   color: var(--color-text) !important;
   border-color: var(--color-border) !important;
+  color-scheme: dark;
 }
 
 body:not(.light-theme) .modal-header,

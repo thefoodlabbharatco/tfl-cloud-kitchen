@@ -358,7 +358,38 @@ function renderTabContent(tabId) {
 // --- TAB: DASHBOARD LOGIC ---
 function filterKPIs(range) {
   currentKpiFilter = range;
+  if (range !== 'custom') {
+    const picker = document.getElementById("kpi-date-picker");
+    if (picker) picker.value = "";
+  }
   renderDashboard();
+}
+
+function clearKpiDatePicker() {
+  const picker = document.getElementById("kpi-date-picker");
+  if (picker) picker.value = "";
+  filterKPIs('today');
+}
+
+function filterOrdersByDate() {
+  renderOrdersTable();
+}
+
+function clearOrderDatePicker() {
+  const picker = document.getElementById("order-date-picker");
+  if (picker) picker.value = "";
+  renderOrdersTable();
+}
+
+function formatCustomDate(dateStr) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length < 3) return dateStr;
+  const year = parts[0];
+  const monthNum = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${day} ${months[monthNum] || parts[1]} ${year}`;
 }
 
 function renderDashboard() {
@@ -380,12 +411,19 @@ function renderDashboard() {
   
   // Check if order date is within the current range.
   // Use createdAt/orderDate through TFL_DB so Indian display dates do not break parsing.
+  const customDatePicker = document.getElementById("kpi-date-picker");
+  const customDateVal = customDatePicker ? customDatePicker.value : "";
+
   const isInPeriod = (order) => {
     const orderTime = TFL_DB.getOrderTime(order);
     if (!orderTime) return false;
     const oDate = new Date(orderTime);
 
-    if (currentKpiFilter === 'today') {
+    if (currentKpiFilter === 'custom') {
+      if (!customDateVal) return false;
+      const orderLocalDateStr = oDate.getFullYear() + '-' + String(oDate.getMonth() + 1).padStart(2, '0') + '-' + String(oDate.getDate()).padStart(2, '0');
+      return orderLocalDateStr === customDateVal;
+    } else if (currentKpiFilter === 'today') {
       return oDate >= startOfToday;
     } else if (currentKpiFilter === 'week') {
       return oDate >= startOfWeek;
@@ -436,12 +474,13 @@ function renderDashboard() {
   const labelMap = {
     today: "Today's Orders",
     week: "This Week's Orders",
-    month: "This Month's Orders"
+    month: "This Month's Orders",
+    custom: customDateVal ? `Orders on ${formatCustomDate(customDateVal)}` : "Select Date..."
   };
   
   const ordersLabelEl = document.getElementById("kpi-orders-label");
   if (ordersLabelEl) {
-    ordersLabelEl.innerText = labelMap[currentKpiFilter];
+    ordersLabelEl.innerText = labelMap[currentKpiFilter] || "Orders List";
   }
   
   document.getElementById("kpi-orders-count").innerText = filteredOrders.length;
@@ -530,17 +569,31 @@ function renderOrdersTable() {
     }
   });
   
+  const datePicker = document.getElementById("order-date-picker");
+  const selectedDate = datePicker ? datePicker.value : "";
+
   let filtered = orders;
   if (currentOrderFilter !== 'all') {
-    filtered = orders.filter(o => o.status === currentOrderFilter);
+    filtered = filtered.filter(o => o.status === currentOrderFilter);
+  }
+  
+  if (selectedDate) {
+    filtered = filtered.filter(o => {
+      const orderTime = TFL_DB.getOrderTime(o);
+      if (!orderTime) return false;
+      const oDate = new Date(orderTime);
+      const orderLocalDateStr = oDate.getFullYear() + '-' + String(oDate.getMonth() + 1).padStart(2, '0') + '-' + String(oDate.getDate()).padStart(2, '0');
+      return orderLocalDateStr === selectedDate;
+    });
   }
   
   if (filtered.length === 0) {
+    const dateLabel = selectedDate ? ` on ${formatCustomDate(selectedDate)}` : '';
     container.innerHTML = `
       <tr>
-        <td colspan="8" style="text-align: center; color: var(--color-text-muted); padding: var(--space-xl) 0;">
+        <td colspan="9" style="text-align: center; color: var(--color-text-muted); padding: var(--space-xl) 0;">
           <i data-lucide="archive" style="width: 48px; height: 48px; stroke-width: 1; margin-bottom: 12px;"></i>
-          <p>No orders cataloged under "${currentOrderFilter}" status.</p>
+          <p>No orders cataloged under "${currentOrderFilter}" status${dateLabel}.</p>
         </td>
       </tr>
     `;

@@ -143,10 +143,14 @@
         <!-- KPI METRICS FILTER BAR -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md); flex-wrap: wrap; gap: 12px;">
           <h3 style="margin: 0; font-size: 1.1rem; font-weight: 600;">Performance Analytics</h3>
-          <div style="display: flex; gap: var(--space-sm);">
+          <div style="display: flex; gap: var(--space-sm); align-items: center; flex-wrap: wrap;">
             <button class="filter-pill active" id="kpi-filter-today" onclick="filterKPIs('today')">Today</button>
             <button class="filter-pill" id="kpi-filter-week" onclick="filterKPIs('week')">This Week</button>
             <button class="filter-pill" id="kpi-filter-month" onclick="filterKPIs('month')">This Month</button>
+            <div style="display: flex; align-items: center; gap: 4px; position: relative;">
+              <input type="date" id="kpi-date-picker" class="form-control" onchange="filterKPIs('custom')" style="height: 36px; padding: 4px 10px; border-radius: 999px; width: 140px; font-size: 0.85rem;">
+              <button class="btn btn-secondary btn-sm" onclick="clearKpiDatePicker()" style="height: 36px; padding: 0 10px; border-radius: 999px; font-size: 0.75rem;">Clear</button>
+            </div>
           </div>
         </div>
 
@@ -225,12 +229,18 @@
       <!-- TAB: ORDERS MODULE -->
       <section id="section-orders" class="tab-panel" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md); gap: 12px; flex-wrap: wrap;">
-          <div style="display: flex; gap: var(--space-sm);">
-            <button class="filter-pill active" id="order-filter-all" onclick="filterOrdersByStatus('all')">All</button>
-            <button class="filter-pill" id="order-filter-pending" onclick="filterOrdersByStatus('Pending')">Pending</button>
-            <button class="filter-pill" id="order-filter-preparing" onclick="filterOrdersByStatus('Preparing')">Preparing</button>
-            <button class="filter-pill" id="order-filter-delivered" onclick="filterOrdersByStatus('Delivered')">Delivered</button>
-            <button class="filter-pill" id="order-filter-cancelled" onclick="filterOrdersByStatus('Cancelled')">Cancelled</button>
+          <div style="display: flex; gap: var(--space-sm); align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; gap: var(--space-sm); flex-wrap: wrap;">
+              <button class="filter-pill active" id="order-filter-all" onclick="filterOrdersByStatus('all')">All</button>
+              <button class="filter-pill" id="order-filter-pending" onclick="filterOrdersByStatus('Pending')">Pending</button>
+              <button class="filter-pill" id="order-filter-preparing" onclick="filterOrdersByStatus('Preparing')">Preparing</button>
+              <button class="filter-pill" id="order-filter-delivered" onclick="filterOrdersByStatus('Delivered')">Delivered</button>
+              <button class="filter-pill" id="order-filter-cancelled" onclick="filterOrdersByStatus('Cancelled')">Cancelled</button>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px; position: relative;">
+              <input type="date" id="order-date-picker" class="form-control" onchange="filterOrdersByDate()" style="height: 36px; padding: 4px 10px; border-radius: 999px; width: 140px; font-size: 0.85rem;">
+              <button class="btn btn-secondary btn-sm" onclick="clearOrderDatePicker()" style="height: 36px; padding: 0 10px; border-radius: 999px; font-size: 0.75rem;">Clear</button>
+            </div>
           </div>
           <div style="display: flex; gap: var(--space-sm);">
             <button class="btn btn-secondary btn-sm" onclick="exportOrdersCSV()">
