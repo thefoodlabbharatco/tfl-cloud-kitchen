@@ -1159,9 +1159,18 @@ function renderProductsTable() {
       ? `<span class="badge badge-veg">Veg</span>` 
       : `<span class="badge badge-nonveg">Non-Veg</span>`;
       
-    const bestsellerBadge = p.bestseller 
-      ? `<span class="badge badge-offer">Bestseller</span>` 
-      : '';
+    let bestsellerBadge = "";
+    if (p.tags && Array.isArray(p.tags)) {
+      p.tags.forEach(tag => {
+        const cleanTag = tag.trim();
+        if (cleanTag) {
+          const badgeClass = cleanTag.toLowerCase() === 'bestseller' ? 'badge-offer' : 'badge-veg';
+          bestsellerBadge += `<span class="badge ${badgeClass}" style="margin-left: 2px;">${cleanTag}</span>`;
+        }
+      });
+    } else if (p.bestseller) {
+      bestsellerBadge = `<span class="badge badge-offer">Bestseller</span>`;
+    }
       
     const allowedConds = p.condiments && p.condiments.length > 0 
       ? p.condiments.map(c => typeof c === 'object' ? `${c.name} (Sell: +₹${c.price}, Cost: +₹${c.costPrice || 0})` : c).join(", ") 
@@ -1362,6 +1371,8 @@ function openProductModal(productId = null) {
     document.getElementById("p-price").value = product.price;
     document.getElementById("p-veg").checked = product.veg;
     document.getElementById("p-bestseller").checked = product.bestseller;
+    document.getElementById("p-tags").value = product.tags ? (Array.isArray(product.tags) ? product.tags.join(", ") : product.tags) : "";
+    document.getElementById("p-show-out-of-stock").checked = product.showOutOfStock !== false;
     
     // Check checkboxes and set prices/costs
     if (product.condiments) {
@@ -1392,6 +1403,8 @@ function openProductModal(productId = null) {
     syncProductCategorySelection(selectCategory);
     document.getElementById("p-profit-margin").innerText = "₹0.00";
     document.getElementById("p-image-status").style.display = "none";
+    document.getElementById("p-tags").value = "";
+    document.getElementById("p-show-out-of-stock").checked = true;
     document.querySelectorAll('input[name^="p-condiment-price-"], input[name^="p-condiment-cost-"]').forEach(inp => {
       inp.disabled = true;
       inp.value = 0;
@@ -1420,6 +1433,9 @@ async function handleProductSubmit(event) {
   const price = parseFloat(document.getElementById("p-price").value) || 0;
   const veg = document.getElementById("p-veg").checked;
   const bestseller = document.getElementById("p-bestseller").checked;
+  const tagsInput = document.getElementById("p-tags").value.trim();
+  const tags = tagsInput ? tagsInput.split(",").map(t => t.trim()).filter(Boolean) : [];
+  const showOutOfStock = document.getElementById("p-show-out-of-stock").checked;
   
   const checkedBoxes = document.querySelectorAll('input[name="p-condiment-opt"]:checked');
   const condimentsListEl = document.getElementById("product-condiments-checklist");
@@ -1460,7 +1476,9 @@ async function handleProductSubmit(event) {
       costPrice: cost,
       price,
       veg,
-      bestseller,
+      bestseller: tags.some(t => t.toLowerCase() === 'bestseller') || bestseller,
+      tags,
+      showOutOfStock,
       condiments,
       hiddenCondiments,
       optionGroups,
@@ -1471,7 +1489,7 @@ async function handleProductSubmit(event) {
     const newId = "p-" + Date.now();
     products.push({
       id: newId,
-      name, description: desc, category, image, costPrice: cost, price, veg, bestseller, condiments, hiddenCondiments, optionGroups, pairings,
+      name, description: desc, category, image, costPrice: cost, price, veg, bestseller: tags.some(t => t.toLowerCase() === 'bestseller') || bestseller, tags, showOutOfStock, condiments, hiddenCondiments, optionGroups, pairings,
       inStock: true
     });
   }
@@ -2472,5 +2490,284 @@ async function handleProductImageUpload(input) {
 async function handleAdminImageUpload(input, targetInputId, statusId, options = {}) {
   return uploadOptimizedImage(input, targetInputId, statusId, options);
 }
+
+// --- OPERATIONS: MANUAL ORDER CREATION PANEL (CALL/WALK-IN) ---
+let manualOrderCart = [];
+
+function openManualOrderModal() {
+  // Reset form inputs
+  document.getElementById("manual-order-form").reset();
+  
+  // Set current date-time in local timezone format (YYYY-MM-DDTHH:MM)
+  const now = new Date();
+  const tzOffset = now.getTimezoneOffset() * 60000;
+  const localISOTime = (new Date(now - tzOffset)).toISOString().slice(0, 16);
+  document.getElementById("mo-datetime").value = localISOTime;
+  
+  // Reset pricing inputs
+  document.getElementById("mo-delivery-charge").value = 40;
+  document.getElementById("mo-late-night").value = 0;
+  document.getElementById("mo-discount").value = 0;
+  
+  // Populate products dropdown
+  const select = document.getElementById("mo-product-select");
+  select.innerHTML = "";
+  const products = TFL_DB.getProducts();
+  const activeProducts = products.filter(p => !p.unlisted);
+  
+  if (activeProducts.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.innerText = "No products formulated";
+    select.appendChild(opt);
+  } else {
+    activeProducts.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.innerText = `${p.name} (₹${p.price})`;
+      select.appendChild(opt);
+    });
+  }
+  
+  // Clear cart
+  manualOrderCart = [];
+  renderManualOrderCart();
+  recalculateManualOrderTotal();
+  
+  // Show modal
+  document.getElementById("manual-order-modal").classList.add("active");
+  document.getElementById("admin-modal-backdrop").classList.add("active");
+}
+
+function closeManualOrderModal() {
+  document.getElementById("manual-order-modal").classList.remove("active");
+  document.getElementById("admin-modal-backdrop").classList.remove("active");
+}
+
+function addManualOrderItem() {
+  const select = document.getElementById("mo-product-select");
+  const productId = select.value;
+  if (!productId) {
+    TFL_DB.showToast("No product selected", "error");
+    return;
+  }
+  
+  const qty = parseInt(document.getElementById("mo-product-qty").value) || 1;
+  const products = TFL_DB.getProducts();
+  const product = products.find(p => p.id === productId);
+  if (!product) return;
+  
+  const existingIdx = manualOrderCart.findIndex(item => item.id === productId);
+  if (existingIdx !== -1) {
+    manualOrderCart[existingIdx].quantity += qty;
+  } else {
+    manualOrderCart.push({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      quantity: qty,
+      condiments: [], // Simplified for manual administrative booking
+      category: product.category
+    });
+  }
+  
+  // Reset quantity selector
+  document.getElementById("mo-product-qty").value = 1;
+  renderManualOrderCart();
+  recalculateManualOrderTotal();
+  TFL_DB.showToast(`${product.name} added to draft order`, "info");
+}
+
+window.addManualOrderItem = addManualOrderItem;
+
+function deleteManualOrderItem(productId) {
+  manualOrderCart = manualOrderCart.filter(item => item.id !== productId);
+  renderManualOrderCart();
+  recalculateManualOrderTotal();
+}
+
+window.deleteManualOrderItem = deleteManualOrderItem;
+
+function renderManualOrderCart() {
+  const list = document.getElementById("manual-order-cart-list");
+  list.innerHTML = "";
+  
+  if (manualOrderCart.length === 0) {
+    list.innerHTML = `<p style="font-size: 0.78rem; color: var(--color-text-muted); text-align: center; margin: 10px 0;">No items added yet.</p>`;
+    return;
+  }
+  
+  manualOrderCart.forEach(item => {
+    const div = document.createElement("div");
+    div.style.display = "flex";
+    div.style.justifyContent = "space-between";
+    div.style.alignItems = "center";
+    div.style.padding = "6px var(--space-sm)";
+    div.style.background = "rgba(255, 255, 255, 0.05)";
+    div.style.borderRadius = "var(--radius-sm)";
+    div.style.fontSize = "0.8rem";
+    div.innerHTML = `
+      <span style="color: #fff;">${item.name} x <strong>${item.quantity}</strong></span>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="color: var(--color-primary); font-weight: 600;">₹${(item.price * item.quantity).toFixed(2)}</span>
+        <button type="button" class="mini-delete-btn" onclick="deleteManualOrderItem('${item.id}')" style="background: none; border: none; color: var(--color-danger); cursor: pointer; font-size: 1.2rem; padding: 0 4px; line-height: 1;">&times;</button>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+window.renderManualOrderCart = renderManualOrderCart;
+
+function recalculateManualOrderTotal() {
+  const subtotal = manualOrderCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const deliveryCharge = parseFloat(document.getElementById("mo-delivery-charge").value) || 0;
+  const lateNightFee = parseFloat(document.getElementById("mo-late-night").value) || 0;
+  const discountAmount = parseFloat(document.getElementById("mo-discount").value) || 0;
+  
+  const grandTotal = Math.max(0, subtotal + deliveryCharge + lateNightFee - discountAmount);
+  document.getElementById("mo-grand-total").innerText = `₹${grandTotal.toFixed(2)}`;
+}
+
+window.recalculateManualOrderTotal = recalculateManualOrderTotal;
+
+async function getNextOrderSequenceForDate(year, month, date) {
+  const prefix = `TFL-${year}${month}${date}-`;
+  let maxSeq = 100;
+
+  // 1. Query Supabase
+  const settings = TFL_DB.getSettings();
+  if (settings.supabaseEnabled && window.supabase) {
+    const client = TFL_DB.getSupabaseClient();
+    if (client) {
+      try {
+        const { data, error } = await client
+          .from("tfl_orders")
+          .select("order_id")
+          .like("order_id", `${prefix}%`);
+        
+        if (!error && data && data.length > 0) {
+          data.forEach(row => {
+            const idStr = row.order_id;
+            const parts = idStr.split("-");
+            if (parts.length === 3) {
+              const seq = parseInt(parts[2]);
+              if (!isNaN(seq) && seq > maxSeq) {
+                maxSeq = seq;
+              }
+            }
+          });
+        }
+      } catch (err) {
+        console.warn("Failed to query Supabase for order sequence:", err);
+      }
+    }
+  }
+
+  // 2. Check local cache
+  const localOrders = TFL_DB.getOrders();
+  localOrders.forEach(o => {
+    if (o && o.id && o.id.startsWith(prefix)) {
+      const parts = o.id.split("-");
+      if (parts.length === 3) {
+        const seq = parseInt(parts[2]);
+        if (!isNaN(seq) && seq > maxSeq) {
+          maxSeq = seq;
+        }
+      }
+    }
+  });
+
+  // 3. Fallback to localStorage tracking
+  const localSeqKey = `tfl_order_seq_${year}${month}${date}`;
+  let localSeq = parseInt(localStorage.getItem(localSeqKey) || "100");
+  if (localSeq > maxSeq) {
+    maxSeq = localSeq;
+  }
+
+  const nextSeq = maxSeq + 1;
+  localStorage.setItem(localSeqKey, nextSeq);
+  return `${prefix}${nextSeq}`;
+}
+
+async function handleManualOrderSubmit(event) {
+  event.preventDefault();
+  
+  if (manualOrderCart.length === 0) {
+    alert("Please add at least one item to the order.");
+    return;
+  }
+  
+  const dtInput = document.getElementById("mo-datetime").value;
+  const name = document.getElementById("mo-name").value.trim();
+  const phone = document.getElementById("mo-phone").value.trim();
+  const gender = document.getElementById("mo-gender").value;
+  const address = document.getElementById("mo-address").value.trim();
+  const paymentMode = document.getElementById("mo-payment-mode").value;
+  const paymentStatus = document.getElementById("mo-payment-status").value;
+  const status = document.getElementById("mo-delivery-status").value;
+  const deliveryCharge = parseFloat(document.getElementById("mo-delivery-charge").value) || 0;
+  const lateNightFee = parseFloat(document.getElementById("mo-late-night").value) || 0;
+  const discountAmount = parseFloat(document.getElementById("mo-discount").value) || 0;
+  
+  const orderDateObj = new Date(dtInput);
+  const year = orderDateObj.getFullYear();
+  const month = String(orderDateObj.getMonth() + 1).padStart(2, '0');
+  const date = String(orderDateObj.getDate()).padStart(2, '0');
+  
+  // Format orderDate string: e.g. "23/06/2026, 18:29:32"
+  const dayStr = String(orderDateObj.getDate()).padStart(2, '0');
+  const monthStr = String(orderDateObj.getMonth() + 1).padStart(2, '0');
+  const yearStr = orderDateObj.getFullYear();
+  const hrsStr = String(orderDateObj.getHours()).padStart(2, '0');
+  const minsStr = String(orderDateObj.getMinutes()).padStart(2, '0');
+  const secsStr = String(orderDateObj.getSeconds()).padStart(2, '0');
+  const orderDateStr = `${dayStr}/${monthStr}/${yearStr}, ${hrsStr}:${minsStr}:${secsStr}`;
+  
+  TFL_DB.showToast("Allocating non-colliding order ID...", "info");
+  const orderId = await getNextOrderSequenceForDate(year, month, date);
+  
+  const subtotal = manualOrderCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const grandTotal = Math.max(0, subtotal + deliveryCharge + lateNightFee - discountAmount);
+  
+  const orderObj = {
+    id: orderId,
+    createdAt: orderDateObj.toISOString(),
+    orderDate: orderDateStr,
+    customerName: name,
+    customerPhone: phone,
+    customerGender: gender,
+    customerAddress: address,
+    customerIp: "Manual Admin Entry",
+    paymentMode: paymentMode,
+    paymentStatus: paymentStatus,
+    status: status,
+    items: manualOrderCart,
+    subtotal: subtotal,
+    deliveryCharge: deliveryCharge,
+    lateNightFee: lateNightFee,
+    discountAmount: discountAmount,
+    grandTotal: grandTotal,
+    discountPercent: subtotal > 0 ? Math.round((discountAmount / subtotal) * 100) : 0
+  };
+  
+  TFL_DB.addOrder(orderObj);
+  
+  try {
+    await TFL_DB.upsertOrderToSupabase(orderObj);
+    TFL_DB.showToast(`Order ${orderId} created successfully!`, "success");
+  } catch (err) {
+    console.error("Failed to sync manual order to Supabase:", err);
+    TFL_DB.showToast("Order saved locally, cloud sync failed.", "warning");
+  }
+  
+  closeManualOrderModal();
+  renderOrdersTable();
+  renderDashboard();
+}
+
+window.openManualOrderModal = openManualOrderModal;
+window.closeManualOrderModal = closeManualOrderModal;
+window.handleManualOrderSubmit = handleManualOrderSubmit;
 
 

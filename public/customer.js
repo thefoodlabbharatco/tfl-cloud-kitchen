@@ -347,6 +347,9 @@ function renderProducts() {
   // We'll support an `unlisted` property which default to false.
   products = products.filter(p => !p.unlisted);
   
+  // Filter out products that are out of stock and set to be hidden (showOutOfStock === false)
+  products = products.filter(p => p.inStock || p.showOutOfStock !== false);
+  
   // Filter out products belonging to hidden sub-brands
   const visibleSubBrands = new Set(
     TFL_DB.getSubBrands()
@@ -381,7 +384,7 @@ function renderProducts() {
   } else if (priceSortDirection === 'desc') {
     products.sort((a, b) => b.price - a.price);
   }
-
+  
   if (products.length === 0) {
     container.innerHTML = `
       <div style="text-align: center; padding: 40px var(--space-md); color: var(--color-text-muted);">
@@ -406,7 +409,15 @@ function renderProducts() {
       
     // Badges Row
     let badgeHtml = "";
-    if (p.bestseller) {
+    if (p.tags && Array.isArray(p.tags)) {
+      p.tags.forEach(tag => {
+        const cleanTag = tag.trim();
+        if (cleanTag) {
+          const badgeClass = cleanTag.toLowerCase() === 'bestseller' ? 'badge-bestseller' : 'badge-custom';
+          badgeHtml += `<span class="badge ${badgeClass}">${cleanTag}</span>`;
+        }
+      });
+    } else if (p.bestseller) {
       badgeHtml += `<span class="badge badge-bestseller">Bestseller</span>`;
     }
     
@@ -418,7 +429,7 @@ function renderProducts() {
     if (!kitchenOpen) {
       actionBtnHtml = `<button class="add-btn-empty add-btn-disabled" type="button" disabled>Closed</button>`;
     } else if (!p.inStock) {
-      actionBtnHtml = `<div class="out-of-stock-badge">Sold Out</div>`;
+      actionBtnHtml = `<button class="add-btn-empty add-btn-disabled" type="button" disabled style="background-color: var(--color-danger) !important; border-color: var(--color-danger) !important; color: #fff !important; cursor: not-allowed; font-weight: 700; width: 100%; font-size: 0.72rem; padding: 6px 4px; height: 36px; border-radius: var(--radius-sm); border: 1px solid transparent; box-shadow: none; white-space: nowrap;">Not Available</button>`;
     } else if (totalQty === 0) {
       actionBtnHtml = `
         <button class="add-btn-empty btn-primary" onclick="initiateAddToCart('${p.id}')">
@@ -1431,18 +1442,70 @@ function copyUpiId() {
 }
 
 // Generate Receipt order code
-function generateOrderCode() {
+async function generateOrderCode() {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const date = String(now.getDate()).padStart(2, '0');
-  
-  // Read running count from localStorage, fallback to random
-  let count = localStorage.getItem("tfl_order_seq") || 100;
-  count = parseInt(count) + 1;
-  localStorage.setItem("tfl_order_seq", count);
-  
-  return `TFL-${year}${month}${date}-${count}`;
+  const prefix = `TFL-${year}${month}${date}-`;
+
+  let maxSeq = 100;
+
+  // 1. Try to query Supabase for the highest sequence number for this date prefix
+  const settings = TFL_DB.getSettings();
+  if (settings.supabaseEnabled && window.supabase) {
+    const client = TFL_DB.getSupabaseClient();
+    if (client) {
+      try {
+        const { data, error } = await client
+          .from("tfl_orders")
+          .select("order_id")
+          .like("order_id", `${prefix}%`);
+        
+        if (!error && data && data.length > 0) {
+          data.forEach(row => {
+            const idStr = row.order_id;
+            const parts = idStr.split("-");
+            if (parts.length === 3) {
+              const seq = parseInt(parts[2]);
+              if (!isNaN(seq) && seq > maxSeq) {
+                maxSeq = seq;
+              }
+            }
+          });
+        }
+      } catch (err) {
+        console.warn("Failed to query Supabase for order sequence, falling back to local:", err);
+      }
+    }
+  }
+
+  // 2. Also check local orders cache in case we added some locally
+  const localOrders = TFL_DB.getOrders();
+  localOrders.forEach(o => {
+    if (o && o.id && o.id.startsWith(prefix)) {
+      const parts = o.id.split("-");
+      if (parts.length === 3) {
+        const seq = parseInt(parts[2]);
+        if (!isNaN(seq) && seq > maxSeq) {
+          maxSeq = seq;
+        }
+      }
+    }
+  });
+
+  // 3. Fallback to localStorage tracking if it is higher
+  const localSeqKey = `tfl_order_seq_${year}${month}${date}`;
+  let localSeq = parseInt(localStorage.getItem(localSeqKey) || "100");
+  if (localSeq > maxSeq) {
+    maxSeq = localSeq;
+  }
+
+  const nextSeq = maxSeq + 1;
+  // Save next sequence to localStorage for this specific day
+  localStorage.setItem(localSeqKey, nextSeq);
+
+  return `${prefix}${nextSeq}`;
 }
 
 // Place Order Submit Action
@@ -1477,7 +1540,7 @@ async function submitOrder(event) {
   const note = document.getElementById("cust-note").value.trim();
   const paymentMode = document.querySelector('input[name="payment-mode"]:checked').value;
   
-  const orderId = generateOrderCode();
+  const orderId = await generateOrderCode();
   const cartSubtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
   const delivery = calculateDeliveryCharge(cartSubtotal, settings);
   const lateNight = settings.lateNightFeeEnabled ? settings.lateNightFeeAmount : 0;

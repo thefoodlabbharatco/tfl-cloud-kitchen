@@ -288,26 +288,7 @@ const TFL_DB = {
 
   pruneOldOrders(orders) {
     if (!Array.isArray(orders)) return [];
-    const settings = this.getSettings ? this.getSettings() : DEFAULT_SETTINGS;
-    const retentionDays = Number(settings.orderRetentionDays || 2);
-    const maxCompletedOrders = Number(settings.maxCompletedOrders || 100);
-    const cutoff = Date.now() - (retentionDays * 24 * 60 * 60 * 1000);
-    const activeOrders = [];
-    const completedOrders = [];
-
-    orders.forEach(order => {
-      if (!order) return;
-      if (order.status !== "Delivered" && order.status !== "Cancelled") {
-        activeOrders.push(order);
-      } else if (this.getOrderTime(order) >= cutoff) {
-        completedOrders.push(order);
-      }
-    });
-
-    completedOrders.sort((a, b) => this.getOrderTime(b) - this.getOrderTime(a));
-    const keptCompletedOrders = completedOrders.slice(0, maxCompletedOrders);
-    const keptIds = new Set([...activeOrders, ...keptCompletedOrders].map(order => order.id));
-    return orders.filter(order => order && keptIds.has(order.id));
+    return orders.filter(Boolean);
   },
 
   setLocal(key, data) {
@@ -816,7 +797,7 @@ const TFL_DB = {
         .from("tfl_orders")
         .select("order_data,created_at")
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(5000);
       if (ordersError) throw ordersError;
 
       if (orderRows) {

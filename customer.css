@@ -407,7 +407,7 @@ body:not(.light-theme) .customer-sync-status.is-warning {
 }
 
 .product-card.out-of-stock {
-  opacity: 0.6;
+  opacity: 0.82;
 }
 
 .product-info {
@@ -1453,6 +1453,13 @@ body.hide-product-prices .product-price-row {
 .badge-bestseller {
   background: #fef3c7;
   color: #92400e;
+  box-shadow: none;
+}
+
+.badge-custom {
+  background: rgba(22, 163, 74, 0.15);
+  color: var(--color-primary);
+  border: 1px solid rgba(22, 163, 74, 0.3);
   box-shadow: none;
 }
 
