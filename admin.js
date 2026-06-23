@@ -305,7 +305,11 @@ function switchTab(tabId) {
 // Side menu slider toggle (for Mobile viewports)
 function toggleSidebarMenu() {
   const sidebar = document.getElementById("dashboard-sidebar");
+  const overlay = document.getElementById("sidebar-overlay");
   sidebar.classList.toggle("active");
+  if (overlay) {
+    overlay.classList.toggle("active");
+  }
 }
 
 // Render tabs logic routing
@@ -313,6 +317,10 @@ function renderTabContent(tabId) {
   // Auto-close sidebar on mobile after clicking
   if (window.innerWidth <= 900) {
     document.getElementById("dashboard-sidebar").classList.remove("active");
+    const overlay = document.getElementById("sidebar-overlay");
+    if (overlay) {
+      overlay.classList.remove("active");
+    }
   }
 
   switch (tabId) {
@@ -487,20 +495,20 @@ function renderDashboard() {
     
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td style="font-weight: 600; color: var(--color-primary);">${order.id}</td>
-      <td>${timeStr}</td>
-      <td>
+      <td data-label="Order ID" style="font-weight: 600; color: var(--color-primary);">${order.id}</td>
+      <td data-label="Time">${timeStr}</td>
+      <td data-label="Customer Info">
         <div><strong>${order.customerName} ${order.customerGender ? `(${order.customerGender})` : ''}</strong></div>
         <div style="font-size: 0.75rem; color: var(--color-text-muted);">${order.customerPhone}</div>
       </td>
-      <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${itemsSummary}">${itemsSummary}</td>
-      <td style="font-weight: 700;">
+      <td data-label="Items Summary" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${itemsSummary}">${itemsSummary}</td>
+      <td data-label="Net Price" style="font-weight: 700;">
         <div>₹${order.grandTotal}</div>
         ${order.promoCode ? `<div style="font-size: 0.72rem; color: var(--color-success); font-weight: normal;">Code: ${order.promoCode} (-₹${order.discountAmount})</div>` : ''}
       </td>
-      <td>${order.paymentMode}</td>
-      <td><span class="status-pill status-${(order.paymentStatus || 'Unpaid').toLowerCase()}">${order.paymentStatus || 'Unpaid'}</span></td>
-      <td><span class="status-pill status-${order.status.toLowerCase()}">${order.status}</span></td>
+      <td data-label="Payment Mode">${order.paymentMode}</td>
+      <td data-label="Payment Status"><span class="status-pill status-${(order.paymentStatus || 'Unpaid').toLowerCase()}">${order.paymentStatus || 'Unpaid'}</span></td>
+      <td data-label="Delivery Status"><span class="status-pill status-${order.status.toLowerCase()}">${order.status}</span></td>
     `;
     recentContainer.appendChild(row);
   });
@@ -599,27 +607,27 @@ function renderOrdersTable() {
     
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td style="font-weight: 600; color: var(--color-primary);">${order.id}</td>
-      <td style="font-size: 0.8rem; line-height: 1.3;">
+      <td data-label="Order ID" style="font-weight: 600; color: var(--color-primary);">${order.id}</td>
+      <td data-label="Date / Time" style="font-size: 0.8rem; line-height: 1.3;">
         <div>${order.orderDate.split(', ')[0]}</div>
         <div style="color: var(--color-text-muted);">${order.orderDate.split(', ')[1] || ''}</div>
       </td>
-      <td style="font-size: 0.82rem; line-height: 1.4; max-width: 150px;">
+      <td data-label="Customer Info" style="font-size: 0.82rem; line-height: 1.4; max-width: 150px;">
         <strong>${order.customerName} ${order.customerGender ? `(${order.customerGender})` : ''}</strong><br>
         WhatsApp: <a href="https://wa.me/${formatWhatsAppNumber(order.customerPhone)}" target="_blank" style="color: var(--color-primary); text-decoration: none;">${order.customerPhone}</a><br>
         <span style="font-size: 0.75rem; color: var(--color-text-muted); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${order.customerAddress}">${order.customerAddress}</span>
         ${order.customerIp ? `<span style="font-size: 0.7rem; color: var(--color-warning); display: block; margin-top: 2px;">IP: ${order.customerIp}</span>` : ''}
       </td>
-      <td style="font-size: 0.8rem; line-height: 1.4;">${itemsDetailHtml}</td>
-      <td>
+      <td data-label="Formulation Details" style="font-size: 0.8rem; line-height: 1.4;">${itemsDetailHtml}</td>
+      <td data-label="Invoice">
         <div style="font-weight: 700; color: #fff;">₹${order.grandTotal}</div>
         ${order.promoCode ? `<div style="font-size: 0.72rem; color: var(--color-success);">Code: ${order.promoCode} (-₹${order.discountAmount})</div>` : ''}
         ${financialInfoHtml}
       </td>
-      <td style="font-size: 0.8rem;">${order.paymentMode}</td>
-      <td><span class="status-pill status-${paymentStatus.toLowerCase()}">${paymentStatus}</span></td>
-      <td><span class="status-pill status-${order.status.toLowerCase()}">${order.status}</span></td>
-      <td>
+      <td data-label="Payment Mode" style="font-size: 0.8rem;">${order.paymentMode}</td>
+      <td data-label="Payment Status"><span class="status-pill status-${paymentStatus.toLowerCase()}">${paymentStatus}</span></td>
+      <td data-label="Delivery Status"><span class="status-pill status-${order.status.toLowerCase()}">${order.status}</span></td>
+      <td data-label="Operations">
         <div style="display: flex; flex-direction: column; gap: var(--space-xs);">
           <div style="font-size: 0.7rem; color: var(--color-text-muted); font-weight: 600;">Delivery:</div>
           ${statusSelectHtml}
@@ -1115,7 +1123,7 @@ function renderProductsTable() {
     
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td style="display: flex; gap: var(--space-md); align-items: center;">
+      <td data-label="Product Info" style="display: flex; gap: var(--space-md); align-items: center;">
         <img src="${p.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=100&q=80'}" alt="${p.name}" style="width: 50px; height: 50px; border-radius: var(--radius-sm); object-fit: cover; border: 1px solid var(--color-border);">
         <div>
           <div style="font-weight: 600; color: #fff;">${p.name}</div>
@@ -1126,20 +1134,20 @@ function renderProductsTable() {
           </div>
         </div>
       </td>
-      <td><span style="font-size: 0.8rem; font-weight: 600; color: var(--color-primary);">${subBrandName}</span></td>
-      <td>
+      <td data-label="Category"><span style="font-size: 0.8rem; font-weight: 600; color: var(--color-primary);">${subBrandName}</span></td>
+      <td data-label="Price Details">
         <div>Sell: <strong>₹${p.price}</strong></div>
         <div style="font-size: 0.75rem; color: var(--color-text-muted);">Cost: ₹${p.costPrice}</div>
         <div style="font-size: 0.75rem; color: var(--color-success); font-weight: 600;">Margin: ₹${profit}</div>
       </td>
-      <td style="font-size: 0.75rem; color: var(--color-text-muted); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${allowedConds}">${allowedConds}</td>
-      <td>
+      <td data-label="Allowed Condiments" style="font-size: 0.75rem; color: var(--color-text-muted); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${allowedConds}">${allowedConds}</td>
+      <td data-label="Stock">
         <label class="checkbox-label" style="font-size: 0.8rem;">
           <input type="checkbox" class="checkbox-custom" ${p.inStock ? 'checked' : ''} onchange="toggleProductStock('${p.id}', this.checked)">
           <span>In Stock</span>
         </label>
       </td>
-      <td>
+      <td data-label="Actions">
         <div style="display: flex; gap: 4px;">
           <button class="btn btn-secondary btn-sm" onclick="openProductModal('${p.id}')" style="padding: 4px 8px;">Edit</button>
           <button class="btn ${listedBtnClass} btn-sm" onclick="toggleProductListing('${p.id}')" style="padding: 4px 8px;">${listedLabel}</button>
@@ -1472,14 +1480,14 @@ function renderSubBrandsTable() {
       
     row = document.createElement("tr");
     row.innerHTML = `
-      <td>${logoPreviewHtml}</td>
-      <td>
+      <td data-label="Logo">${logoPreviewHtml}</td>
+      <td data-label="Name">
         <div style="font-weight: 600; color: #fff;">${s.name}</div>
         <div style="font-size: 0.72rem; color: var(--color-text-muted);">ID: ${s.id}</div>
       </td>
-      <td><strong>${s.sortOrder}</strong></td>
-      <td>${visibleBadge}</td>
-      <td>
+      <td data-label="Order"><strong>${s.sortOrder}</strong></td>
+      <td data-label="Status">${visibleBadge}</td>
+      <td data-label="Actions">
         <div style="display: flex; gap: 4px;">
           <button class="btn btn-secondary btn-sm" onclick="openSubBrandModal('${s.id}')" style="padding: 4px 8px;">Edit</button>
           <button class="btn btn-danger btn-sm" onclick="deleteSubBrand('${s.id}')" style="padding: 4px 8px;"><i data-lucide="trash" style="width: 12px; height: 12px;"></i></button>
@@ -1589,15 +1597,15 @@ function renderUpdatesTable() {
       
     row = document.createElement("tr");
     row.innerHTML = `
-      <td><img src="${u.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=120&q=80'}" style="width: 80px; height: 45px; border-radius: 4px; object-fit: cover; border: 1px solid var(--color-border);"></td>
-      <td>
+      <td data-label="Image"><img src="${u.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=120&q=80'}" style="width: 80px; height: 45px; border-radius: 4px; object-fit: cover; border: 1px solid var(--color-border);"></td>
+      <td data-label="Details">
         <div style="font-weight: 600; color: #fff;">${u.title}</div>
         <div style="font-size: 0.72rem; color: var(--color-text-muted); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${u.description}</div>
       </td>
-      <td><strong>${u.launchDate || 'N/A'}</strong></td>
-      <td><span class="badge tag-${u.type || 'new_launch'}">${(u.type || 'new_launch').replace('_', ' ')}</span></td>
-      <td>${activeBadge}</td>
-      <td>
+      <td data-label="Launch Date"><strong>${u.launchDate || 'N/A'}</strong></td>
+      <td data-label="Type"><span class="badge tag-${u.type || 'new_launch'}">${(u.type || 'new_launch').replace('_', ' ')}</span></td>
+      <td data-label="Status">${activeBadge}</td>
+      <td data-label="Actions">
         <div style="display: flex; gap: 4px;">
           <button class="btn btn-secondary btn-sm" onclick="openUpdateModal('${u.id}')" style="padding: 4px 8px;">Edit</button>
           <button class="btn btn-danger btn-sm" onclick="deleteUpdate('${u.id}')" style="padding: 4px 8px;"><i data-lucide="trash" style="width: 12px; height: 12px;"></i></button>
@@ -1701,19 +1709,19 @@ function renderPromoCodesTable() {
 
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td><strong style="color: #fff; text-transform: uppercase;">${p.code}</strong></td>
-      <td><strong>${p.discountPercent}%</strong></td>
-      <td>
+      <td data-label="Code"><strong style="color: #fff; text-transform: uppercase;">${p.code}</strong></td>
+      <td data-label="Discount"><strong>${p.discountPercent}%</strong></td>
+      <td data-label="Expiry">
         <span>${p.validTill || 'No Expiry'}</span>
         ${expiredLabel}
       </td>
-      <td>
+      <td data-label="Status">
         <label class="checkbox-label" style="font-size: 0.8rem; margin: 0;">
           <input type="checkbox" class="checkbox-custom" ${p.active ? 'checked' : ''} onchange="togglePromoCodeActive('${p.code}', this.checked)">
           <span>${p.active ? 'Active' : 'Inactive'}</span>
         </label>
       </td>
-      <td>
+      <td data-label="Actions">
         <div style="display: flex; gap: 4px;">
           <button class="btn btn-secondary btn-sm" onclick="openPromoCodeModal('${p.code}')" style="padding: 4px 8px;">Edit</button>
           <button class="btn btn-danger btn-sm" onclick="deletePromoCode('${p.code}')" style="padding: 4px 8px;"><i data-lucide="trash" style="width: 12px; height: 12px;"></i></button>
@@ -1857,10 +1865,10 @@ function renderAdminsTable() {
     
     row = document.createElement("tr");
     row.innerHTML = `
-      <td><div style="font-weight: 600; color: #fff;">${a.name}</div></td>
-      <td><code>${a.username}</code></td>
-      <td><span class="role-badge role-${a.role.toLowerCase()}">${a.role}</span></td>
-      <td>${actionsHtml}</td>
+      <td data-label="Name"><div style="font-weight: 600; color: #fff;">${a.name}</div></td>
+      <td data-label="Username"><code>${a.username}</code></td>
+      <td data-label="Role"><span class="role-badge role-${a.role.toLowerCase()}">${a.role}</span></td>
+      <td data-label="Actions">${actionsHtml}</td>
     `;
     container.appendChild(row);
   });

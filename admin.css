@@ -1227,14 +1227,35 @@ div[style*="font-weight: 700; color: #fff"] {
   }
 }
 
+/* Sidebar backdrop overlay on mobile */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 99;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 @media (max-width: 900px) {
   .sidebar {
-    width: min(86vw, 320px);
+    width: min(86vw, 320px) !important;
     box-shadow: 24px 0 80px rgba(17, 24, 39, 0.18);
   }
 
   .main-content {
-    margin-left: 0;
+    margin-left: 0 !important;
     padding: 16px;
   }
 
@@ -1267,48 +1288,107 @@ div[style*="font-weight: 700; color: #fff"] {
     overflow: visible;
   }
 
-  #section-orders .admin-table,
-  #section-dashboard .admin-table {
-    min-width: 0;
+  .admin-table {
+    min-width: 0 !important;
   }
 
-  #section-orders .admin-table thead,
-  #section-dashboard .admin-table thead {
-    display: none;
+  .admin-table thead {
+    display: none !important;
   }
 
-  #section-orders .admin-table,
-  #section-orders .admin-table tbody,
-  #section-orders .admin-table tr,
-  #section-orders .admin-table td,
-  #section-dashboard .admin-table,
-  #section-dashboard .admin-table tbody,
-  #section-dashboard .admin-table tr,
-  #section-dashboard .admin-table td {
-    display: block;
-    width: 100%;
+  .admin-table,
+  .admin-table tbody,
+  .admin-table tr,
+  .admin-table td {
+    display: block !important;
+    width: 100% !important;
   }
 
-  #section-orders .admin-table tr,
-  #section-dashboard .admin-table tr {
-    margin-bottom: 12px;
-    padding: 12px;
-    background: #ffffff;
-    border: 1px solid rgba(17, 24, 39, 0.08);
-    border-radius: 8px;
-    box-shadow: var(--shadow-sm);
+  .admin-table tr {
+    margin-bottom: 16px !important;
+    padding: 16px !important;
+    background: var(--color-bg-card) !important;
+    border: 1px solid var(--color-border) !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: var(--shadow-sm) !important;
   }
 
-  #section-orders .admin-table td,
-  #section-dashboard .admin-table td {
-    padding: 6px 0;
-    border-bottom: 0;
+  body:not(.light-theme) .admin-table tr {
+    background: var(--color-bg-card) !important;
+    border-color: var(--color-border) !important;
   }
 
-  #section-orders .admin-table td:first-child,
-  #section-dashboard .admin-table td:first-child {
-    font-size: 1rem;
-    font-weight: 800 !important;
+  body.light-theme .admin-table tr {
+    background: #ffffff !important;
+    border-color: rgba(17, 24, 39, 0.08) !important;
+  }
+
+  .admin-table td {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 10px 0 !important;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1) !important;
+    text-align: right;
+    font-size: 0.9rem !important;
+    background: transparent !important;
+  }
+
+  body.light-theme .admin-table td {
+    border-bottom-color: rgba(17, 24, 39, 0.06) !important;
+  }
+
+  .admin-table td:last-child {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+    margin-top: 10px !important;
+    justify-content: flex-end !important;
+  }
+
+  .admin-table td[data-label]::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-align: left;
+    margin-right: 16px;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  /* Multi-line cells should stack vertically for readability */
+  .admin-table td[data-label="Product Info"],
+  .admin-table td[data-label="Customer Info"],
+  .admin-table td[data-label="Formulation Details"],
+  .admin-table td[data-label="Items Summary"] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    text-align: left !important;
+  }
+
+  .admin-table td[data-label="Product Info"]::before,
+  .admin-table td[data-label="Customer Info"]::before,
+  .admin-table td[data-label="Formulation Details"]::before,
+  .admin-table td[data-label="Items Summary"]::before {
+    margin-bottom: 6px !important;
+  }
+
+  .admin-table td[data-label="Product Info"] img {
+    margin-bottom: 6px !important;
+  }
+
+  /* Form layouts stacking on mobile */
+  .form-row {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-sm) !important;
+  }
+
+  /* Prevent browser keyboard zooming layout shifts on inputs */
+  .form-control, 
+  input.form-control, 
+  select.form-control, 
+  textarea.form-control {
+    font-size: 16px !important;
   }
 }
 
@@ -1348,6 +1428,18 @@ div[style*="font-weight: 700; color: #fff"] {
   #section-dashboard > div:first-child {
     overflow-x: auto;
     align-items: flex-start !important;
+  }
+
+  /* Stack tab panel headers on small screens */
+  .tab-panel > div[style*="display: flex"][style*="justify-content: space-between"] {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .tab-panel > div[style*="display: flex"][style*="justify-content: space-between"] > div {
+    justify-content: flex-start !important;
+    width: 100% !important;
   }
 }
 
