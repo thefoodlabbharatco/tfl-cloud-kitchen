@@ -1464,10 +1464,16 @@ async function handleProductSubmit(event) {
   const checkedPairings = document.querySelectorAll('input[name="p-pairing-opt"]:checked');
   const pairings = Array.from(checkedPairings).map(cb => cb.value);
 
-  const optionGroups = Array.from(document.querySelectorAll("#product-choice-groups-list .choice-group-card")).map(card => ({
-    name: card.querySelector(".choice-group-title-input")?.value.trim() || "",
-    options: Array.from(card.querySelectorAll(".choice-option-input")).map(input => input.value.trim()).filter(Boolean)
-  })).filter(group => group.name && group.options.length >= 2);
+  const optionGroups = Array.from(document.querySelectorAll("#product-choice-groups-list .choice-group-card")).map(card => {
+    const groupName = card.querySelector(".choice-group-title-input")?.value.trim() || "";
+    const options = Array.from(card.querySelectorAll(".choice-option-editor-row")).map(row => {
+      const name = row.querySelector(".choice-option-input")?.value.trim() || "";
+      const price = parseFloat(row.querySelector(".choice-option-price")?.value) || 0;
+      const costPrice = parseFloat(row.querySelector(".choice-option-cost")?.value) || 0;
+      return { name, price, costPrice };
+    }).filter(opt => opt.name);
+    return { name: groupName, options };
+  }).filter(group => group.name && group.options.length >= 2);
   
   const products = TFL_DB.getProducts();
   
@@ -2293,7 +2299,26 @@ function renderChoiceGroupOption(name, options) {
   const listDiv = document.getElementById("product-choice-groups-list");
   if (!listDiv || !name || !Array.isArray(options) || options.length === 0) return;
   const cleanName = String(name).trim();
-  const cleanOptions = Array.from(new Set(options.map(option => String(option).trim()).filter(Boolean)));
+  
+  const cleanOptions = [];
+  const seen = new Set();
+  options.forEach(opt => {
+    let optName = "";
+    let price = 0;
+    let cost = 0;
+    if (opt && typeof opt === 'object') {
+      optName = (opt.name || "").trim();
+      price = opt.price || 0;
+      cost = opt.costPrice || 0;
+    } else {
+      optName = String(opt).trim();
+    }
+    if (optName && !seen.has(optName.toLowerCase())) {
+      seen.add(optName.toLowerCase());
+      cleanOptions.push({ name: optName, price, costPrice: cost });
+    }
+  });
+  
   if (!cleanName || cleanOptions.length === 0) return;
 
   const exists = Array.from(listDiv.querySelectorAll(".choice-group-card"))
@@ -2332,7 +2357,7 @@ function renderChoiceGroupOption(name, options) {
   addOptionBtn.style.marginTop = "8px";
   addOptionBtn.style.width = "fit-content";
   addOptionBtn.innerText = "Add Option";
-  addOptionBtn.onclick = () => appendChoiceOptionInput(optionsEditor, "");
+  addOptionBtn.onclick = () => appendChoiceOptionInput(optionsEditor, { name: "", price: 0, costPrice: 0 });
 
   header.appendChild(title);
   header.appendChild(removeBtn);
@@ -2343,14 +2368,42 @@ function renderChoiceGroupOption(name, options) {
 }
 
 function appendChoiceOptionInput(container, value = "") {
+  let name = "";
+  let price = 0;
+  let cost = 0;
+
+  if (value && typeof value === 'object') {
+    name = value.name || "";
+    price = value.price || 0;
+    cost = value.costPrice || 0;
+  } else {
+    name = value || "";
+  }
+
   const row = document.createElement("div");
   row.className = "choice-option-editor-row";
 
   const input = document.createElement("input");
   input.type = "text";
   input.className = "form-control choice-option-input";
-  input.value = value;
-  input.placeholder = `Radio option ${container.querySelectorAll(".choice-option-input").length + 1}`;
+  input.value = name;
+  input.placeholder = `Option e.g. Regular`;
+
+  const priceInput = document.createElement("input");
+  priceInput.type = "number";
+  priceInput.className = "form-control choice-option-price";
+  priceInput.value = price;
+  priceInput.min = "0";
+  priceInput.placeholder = "Sell";
+  priceInput.style.padding = "4px 8px";
+
+  const costInput = document.createElement("input");
+  costInput.type = "number";
+  costInput.className = "form-control choice-option-cost";
+  costInput.value = cost;
+  costInput.min = "0";
+  costInput.placeholder = "Cost";
+  costInput.style.padding = "4px 8px";
 
   const deleteBtn = document.createElement("button");
   deleteBtn.type = "button";
@@ -2360,6 +2413,8 @@ function appendChoiceOptionInput(container, value = "") {
   deleteBtn.onclick = () => row.remove();
 
   row.appendChild(input);
+  row.appendChild(priceInput);
+  row.appendChild(costInput);
   row.appendChild(deleteBtn);
   container.appendChild(row);
 }

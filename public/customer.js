@@ -660,20 +660,26 @@ function openAddonsModal(product) {
     groupWrap.appendChild(title);
 
     options.forEach((option, optionIndex) => {
-      const optionText = String(option).trim();
-      if (!optionText) return;
+      const optName = (option && typeof option === 'object') ? (option.name || "") : String(option).trim();
+      if (!optName) return;
+      const optPrice = (option && typeof option === 'object') ? (option.price || 0) : 0;
+      const optCost = (option && typeof option === 'object') ? (option.costPrice || 0) : 0;
+
       const label = document.createElement("label");
       label.className = "choice-option-row";
 
       const radio = document.createElement("input");
       radio.type = "radio";
       radio.name = radioName;
-      radio.value = optionText;
+      radio.value = optName;
       radio.setAttribute("data-group", groupName);
+      radio.setAttribute("data-price", optPrice);
+      radio.setAttribute("data-cost", optCost);
       radio.checked = optionIndex === 0;
 
       const span = document.createElement("span");
-      span.innerText = optionText;
+      const priceText = optPrice > 0 ? ` (+₹${optPrice})` : '';
+      span.innerText = `${optName}${priceText}`;
 
       label.appendChild(radio);
       label.appendChild(span);
@@ -723,10 +729,13 @@ function openAddonsModal(product) {
     selectedChoices.forEach(radio => {
       const groupName = radio.getAttribute("data-group") || "Option";
       const choiceName = radio.value;
+      const choicePrice = parseFloat(radio.getAttribute("data-price")) || 0;
+      const choiceCost = parseFloat(radio.getAttribute("data-cost")) || 0;
       if (choiceName) {
         selectedCondiments.push({
           name: `${groupName}: ${choiceName}`,
-          price: 0,
+          price: choicePrice,
+          costPrice: choiceCost,
           quantity: 1,
           type: "choice",
           group: groupName,

@@ -581,7 +581,7 @@ body.light-theme .condiments-grid .checkbox-label > div:last-child .form-control
 
 .choice-option-editor-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 28px;
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 0.8fr) minmax(0, 0.8fr) 28px;
   gap: 8px;
   align-items: center;
 }
