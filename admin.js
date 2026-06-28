@@ -446,11 +446,13 @@ function renderDashboard() {
   let totalCost = 0;
   let totalDelivery = 0;
   let totalLateNight = 0;
+  let totalDiscounts = 0;
   
   deliveredOrders.forEach(order => {
     totalRevenue += order.grandTotal;
     totalDelivery += (order.deliveryCharge || 0);
     totalLateNight += (order.lateNightFee || 0);
+    totalDiscounts += (order.discountAmount || 0);
     
     // Calculate cost of items inside order
     let orderCost = 0;
@@ -498,6 +500,10 @@ function renderDashboard() {
   document.getElementById("kpi-delivery").innerText = `₹${totalDelivery.toFixed(0)}`;
   document.getElementById("kpi-late-night").innerText = `₹${totalLateNight.toFixed(0)}`;
   document.getElementById("kpi-profit").innerText = `₹${totalProfit.toFixed(0)}`;
+  const kpiDiscountsEl = document.getElementById("kpi-discounts");
+  if (kpiDiscountsEl) {
+    kpiDiscountsEl.innerText = `₹${totalDiscounts.toFixed(0)}`;
+  }
   
   // Update filter pill UI classes
   ['today', 'week', 'month'].forEach(f => {
