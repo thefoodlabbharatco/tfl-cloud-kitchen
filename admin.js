@@ -3245,6 +3245,7 @@ function checkLowStockAlerts() {
           localStorage.setItem("tfl_low_stock_alerts_sent", JSON.stringify(sentAlerts));
           
           TFL_DB.showToast(`Warning: "${p.name}" has reached low stock! (${remaining} left)`, "warning");
+          speakText(`${p.name} low in stock`);
           
           try {
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
