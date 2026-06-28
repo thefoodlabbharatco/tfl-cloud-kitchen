@@ -372,7 +372,10 @@ function filterKPIs(range) {
 
 function clearKpiDatePicker() {
   const picker = document.getElementById("kpi-date-picker");
-  if (picker) picker.value = "";
+  if (picker) {
+    picker.value = "";
+    picker.type = "text";
+  }
   filterKPIs('today');
 }
 
@@ -382,7 +385,10 @@ function filterOrdersByDate() {
 
 function clearOrderDatePicker() {
   const picker = document.getElementById("order-date-picker");
-  if (picker) picker.value = "";
+  if (picker) {
+    picker.value = "";
+    picker.type = "text";
+  }
   renderOrdersTable();
 }
 

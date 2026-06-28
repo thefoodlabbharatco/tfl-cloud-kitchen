@@ -154,7 +154,7 @@
             <button class="filter-pill" id="kpi-filter-week" onclick="filterKPIs('week')">This Week</button>
             <button class="filter-pill" id="kpi-filter-month" onclick="filterKPIs('month')">This Month</button>
             <div style="display: flex; align-items: center; gap: 4px; position: relative;">
-              <input type="date" id="kpi-date-picker" class="form-control" onchange="filterKPIs('custom')" style="height: 36px; padding: 4px 10px; border-radius: 999px; width: 140px; font-size: 0.85rem;">
+              <input type="text" id="kpi-date-picker" placeholder="Calendar" class="form-control" onfocus="(this.type='date')" onblur="(this.value ? this.type='date' : this.type='text')" onchange="filterKPIs('custom')" style="height: 36px; padding: 4px 10px; border-radius: 999px; width: 140px; font-size: 0.85rem; text-align: center;">
               <button class="btn btn-secondary btn-sm" onclick="clearKpiDatePicker()" style="height: 36px; padding: 0 10px; border-radius: 999px; font-size: 0.75rem;">Clear</button>
             </div>
           </div>
@@ -251,7 +251,7 @@
               <button class="filter-pill" id="order-filter-cancelled" onclick="filterOrdersByStatus('Cancelled')">Cancelled</button>
             </div>
             <div style="display: flex; align-items: center; gap: 4px; position: relative;">
-              <input type="date" id="order-date-picker" class="form-control" onchange="filterOrdersByDate()" style="height: 36px; padding: 4px 10px; border-radius: 999px; width: 140px; font-size: 0.85rem;">
+              <input type="text" id="order-date-picker" placeholder="Calendar" class="form-control" onfocus="(this.type='date')" onblur="(this.value ? this.type='date' : this.type='text')" onchange="filterOrdersByDate()" style="height: 36px; padding: 4px 10px; border-radius: 999px; width: 140px; font-size: 0.85rem; text-align: center;">
               <button class="btn btn-secondary btn-sm" onclick="clearOrderDatePicker()" style="height: 36px; padding: 0 10px; border-radius: 999px; font-size: 0.75rem;">Clear</button>
             </div>
           </div>
