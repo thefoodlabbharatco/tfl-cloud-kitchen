@@ -192,7 +192,26 @@ function notifyForNewOrders() {
   });
   if (newPendingOrders.length > 0 && loggedInUser) {
     playNewOrderChime();
+    speakText("New order received");
     TFL_DB.showToast(`New order received: ${newPendingOrders[0].id}`, "success");
+  }
+}
+
+function speakText(text) {
+  if (typeof window !== "undefined" && "speechSynthesis" in window) {
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voices = window.speechSynthesis.getVoices();
+      const englishVoice = voices.find(v => v.lang.startsWith("en-"));
+      if (englishVoice) utterance.voice = englishVoice;
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.warn("Speech synthesis failed:", e);
+    }
   }
 }
 
