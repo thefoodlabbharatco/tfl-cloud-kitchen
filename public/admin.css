@@ -162,8 +162,34 @@
 
 .content-actions {
   display: flex;
-  gap: var(--space-md);
+  gap: 8px;
   align-items: center;
+}
+
+.content-actions > * {
+  margin: 0 !important;
+  height: 36px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+}
+
+.content-actions .theme-toggle-btn {
+  width: 36px !important;
+  padding: 0 !important;
+}
+
+.content-actions .sync-banner {
+  padding: 0 12px !important;
+  font-size: 0.75rem !important;
+  border-radius: 6px !important;
+}
+
+.content-actions .btn-sm {
+  padding: 0 12px !important;
+  font-size: 0.75rem !important;
+  border-radius: 6px !important;
 }
 
 /* --- ADMIN LOGIN PANEL --- */
