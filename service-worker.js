@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tfl-cache-v47';
+const CACHE_NAME = 'tfl-cache-v50';
 const ASSETS_TO_CACHE = [
   './',
   './admin',

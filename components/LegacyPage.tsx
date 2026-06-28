@@ -33,9 +33,9 @@ export default function LegacyPage({ title, description, bodyHtml, pageScript, b
       loadScript("https://unpkg.com/lucide@latest"),
       loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2")
     ])
-      .then(() => loadScript(assetPath(basePath, "runtime-config.js?v=49")))
-      .then(() => loadScript(assetPath(basePath, "db.js?v=49")))
-      .then(() => loadScript(assetPath(basePath, pageScript + "?v=49")))
+      .then(() => loadScript(assetPath(basePath, "runtime-config.js?v=50")))
+      .then(() => loadScript(assetPath(basePath, "db.js?v=50")))
+      .then(() => loadScript(assetPath(basePath, pageScript + "?v=50")))
       .catch((err) => console.error("Legacy script loading failed:", err));
   }, [basePath, pageScript]);
 
@@ -63,7 +63,7 @@ export default function LegacyPage({ title, description, bodyHtml, pageScript, b
         <meta name="description" content={description} />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <script dangerouslySetInnerHTML={{ __html: `
-          if ('serviceWorker' in navigator && !localStorage.getItem('tfl_sw_cleaned_v49')) {
+          if ('serviceWorker' in navigator && !localStorage.getItem('tfl_sw_cleaned_v50')) {
             navigator.serviceWorker.getRegistrations().then(function(regs) {
               for (var i = 0; i < regs.length; i++) { regs[i].unregister(); }
             });
@@ -72,27 +72,27 @@ export default function LegacyPage({ title, description, bodyHtml, pageScript, b
                 for (var i = 0; i < keys.length; i++) { caches.delete(keys[i]); }
               });
             }
-            localStorage.setItem('tfl_sw_cleaned_v49', 'true');
+            localStorage.setItem('tfl_sw_cleaned_v50', 'true');
             setTimeout(function() { window.location.reload(); }, 200);
           }
         ` }} />
         <meta name="theme-color" content="#16a34a" />
-        <link rel="icon" type="image/x-icon" href={assetPath(basePath, "favicon.ico?v=49")} />
-        <link rel="icon" type="image/png" sizes="32x32" href={assetPath(basePath, "favicon-32.png?v=49")} />
-        <link rel="shortcut icon" href={assetPath(basePath, "favicon.ico?v=49")} />
-        <link rel="apple-touch-icon" sizes="180x180" href={assetPath(basePath, "apple-touch-icon.png?v=49")} />
+        <link rel="icon" type="image/x-icon" href={assetPath(basePath, "favicon.ico?v=50")} />
+        <link rel="icon" type="image/png" sizes="32x32" href={assetPath(basePath, "favicon-32.png?v=50")} />
+        <link rel="shortcut icon" href={assetPath(basePath, "favicon.ico?v=50")} />
+        <link rel="apple-touch-icon" sizes="180x180" href={assetPath(basePath, "apple-touch-icon.png?v=50")} />
         <link rel="preconnect" href="https://unpkg.com" />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" />
         <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL || "https://rtlnhteibmtudqchlzbv.supabase.co"} />
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
-        <link rel="manifest" href={assetPath(basePath, "manifest.json?v=49")} />
+        <link rel="manifest" href={assetPath(basePath, "manifest.json?v=50")} />
         <link rel="preload" as="image" href={assetPath(basePath, "tfl_hero.png")} />
         <link rel="preload" as="image" href={assetPath(basePath, "tfl_logo.png")} />
-        <link rel="preload" as="script" href={assetPath(basePath, "runtime-config.js?v=49")} />
-        <link rel="preload" as="script" href={assetPath(basePath, "db.js?v=49")} />
-        <link rel="preload" as="script" href={assetPath(basePath, pageScript + "?v=49")} />
-        <link rel="stylesheet" href={assetPath(basePath, "style.css?v=49")} />
-        <link rel="stylesheet" href={assetPath(basePath, (pageScript === "admin.js" ? "admin.css" : "customer.css") + "?v=49")} />
+        <link rel="preload" as="script" href={assetPath(basePath, "runtime-config.js?v=50")} />
+        <link rel="preload" as="script" href={assetPath(basePath, "db.js?v=50")} />
+        <link rel="preload" as="script" href={assetPath(basePath, pageScript + "?v=50")} />
+        <link rel="stylesheet" href={assetPath(basePath, "style.css?v=50")} />
+        <link rel="stylesheet" href={assetPath(basePath, (pageScript === "admin.js" ? "admin.css" : "customer.css") + "?v=50")} />
       </Head>
 
       <div dangerouslySetInnerHTML={{ __html: bodyHtml }} />
