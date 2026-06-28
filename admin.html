@@ -74,6 +74,9 @@
         <div class="sidebar-item" onclick="switchTab('products')" id="tab-products">
           <i data-lucide="chef-hat"></i> Products
         </div>
+        <div class="sidebar-item" onclick="switchTab('inventory')" id="tab-inventory">
+          <i data-lucide="package"></i> Inventory Control
+        </div>
         <div class="sidebar-item" onclick="switchTab('subbrands')" id="tab-subbrands">
           <i data-lucide="flame"></i> Sub-Brands
         </div>
@@ -137,6 +140,9 @@
           </button>
         </div>
       </header>
+
+      <!-- Real-time Low Stock Alerts Container -->
+      <div id="low-stock-alerts-container" style="padding: 0 var(--space-md); margin-bottom: var(--space-sm); display: none; flex-direction: column; gap: 8px;"></div>
 
       <!-- TAB: DASHBOARD MODULE -->
       <section id="section-dashboard" class="tab-panel active">
@@ -271,6 +277,38 @@
               </tr>
             </thead>
             <tbody id="orders-full-list">
+              <!-- JS rendered -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB: INVENTORY CONTROL MODULE -->
+      <section id="section-inventory" class="tab-panel" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md); flex-wrap: wrap; gap: var(--space-xs);">
+          <div>
+            <h3 style="color: #fff; margin-bottom: 2px;">Daily Inventory Control</h3>
+            <p style="font-size: 0.72rem; color: var(--color-text-muted); margin: 0;">Staff can configure limits, warning thresholds, and reset daily counts here.</p>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="resetDailyInventory()">
+            <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i> Reset Daily Inventory
+          </button>
+        </div>
+        
+        <div class="table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Product Info</th>
+                <th>Category</th>
+                <th>Stock Limit</th>
+                <th>Low Threshold</th>
+                <th>Sold Today</th>
+                <th>Remaining Stock</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-admin-list">
               <!-- JS rendered -->
             </tbody>
           </table>
@@ -703,6 +741,20 @@ with check (bucket_id = 'product-images');</pre>
             <input type="number" id="p-price" class="form-control" required min="0" oninput="calculateModalProfit()">
           </div>
         </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="p-stock-limit">Daily Stock Limit</label>
+            <input type="number" id="p-stock-limit" class="form-control" min="0" placeholder="Unlimited">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="p-stock-threshold">Low Stock Warning Threshold</label>
+            <input type="number" id="p-stock-threshold" class="form-control" min="0" placeholder="e.g. 2">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="p-stock-sold">Sold Today</label>
+            <input type="number" id="p-stock-sold" class="form-control" min="0" value="0">
+          </div>
+        </div>
         <div class="form-group">
           <label class="form-label" for="p-tags">Product Tags (comma-separated)</label>
           <input type="text" id="p-tags" class="form-control" placeholder="e.g. Bestseller, Chef's Special, Trending">
@@ -1034,6 +1086,13 @@ with check (bucket_id = 'product-images');</pre>
           <div id="mo-condiments-container" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: var(--space-sm); margin-top: var(--space-sm); display: none;">
             <label class="form-label" style="margin-bottom: 6px; display: block; font-weight: 600; color: #fff;">Select Add-ons / Condiments</label>
             <div id="mo-condiments-list" style="display: flex; flex-direction: column; gap: var(--space-xs);">
+              <!-- Rendered dynamically by JS -->
+            </div>
+          </div>
+          
+          <div id="mo-choices-container" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: var(--space-sm); margin-top: var(--space-sm); display: none;">
+            <label class="form-label" style="margin-bottom: 6px; display: block; font-weight: 600; color: #fff;">Select Option / Portion</label>
+            <div id="mo-choices-list" style="display: flex; flex-direction: column; gap: var(--space-xs);">
               <!-- Rendered dynamically by JS -->
             </div>
           </div>

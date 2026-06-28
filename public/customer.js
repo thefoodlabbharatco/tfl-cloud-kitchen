@@ -348,7 +348,14 @@ function renderProducts() {
   products = products.filter(p => !p.unlisted);
   
   // Filter out products that are out of stock and set to be hidden (showOutOfStock === false)
-  products = products.filter(p => p.inStock || p.showOutOfStock !== false);
+  products = products.filter(p => {
+    const isActuallyInStock = p.inStock && (
+      p.stockLimit === undefined || 
+      p.stockLimit === null || 
+      (p.stockLimit - (p.currentStockSold || 0)) > 0
+    );
+    return isActuallyInStock || p.showOutOfStock !== false;
+  });
   
   // Filter out products belonging to hidden sub-brands
   const visibleSubBrands = new Set(
@@ -399,8 +406,11 @@ function renderProducts() {
   const fragment = document.createDocumentFragment();
   
   products.forEach(p => {
+    const remainingStock = p.stockLimit !== undefined && p.stockLimit !== null ? Math.max(0, p.stockLimit - (p.currentStockSold || 0)) : null;
+    const isItemInStock = p.inStock && (remainingStock === null || remainingStock > 0);
+
     const card = document.createElement("div");
-    card.className = `product-card ${!p.inStock ? 'out-of-stock' : ''}`;
+    card.className = `product-card ${!isItemInStock ? 'out-of-stock' : ''}`;
     
     // Veg/NonVeg dot indicators
     const vegBadge = p.veg 
@@ -422,13 +432,12 @@ function renderProducts() {
     }
     
     // Find quantity currently in cart for this specific item structure
-    // Since condiments create unique order entries, we aggregate quantities for this base product
     const totalQty = getCartProductQty(p.id);
     
     let actionBtnHtml = "";
     if (!kitchenOpen) {
       actionBtnHtml = `<button class="add-btn-empty add-btn-disabled" type="button" disabled>Closed</button>`;
-    } else if (!p.inStock) {
+    } else if (!isItemInStock) {
       actionBtnHtml = `<button class="add-btn-empty add-btn-disabled" type="button" disabled style="background-color: var(--color-danger) !important; border-color: var(--color-danger) !important; color: #fff !important; cursor: not-allowed; font-weight: 700; width: 100%; font-size: 0.72rem; padding: 6px 4px; height: 36px; border-radius: var(--radius-sm); border: 1px solid transparent; box-shadow: none; white-space: nowrap;">Not Available</button>`;
     } else if (totalQty === 0) {
       actionBtnHtml = `
@@ -446,6 +455,31 @@ function renderProducts() {
       `;
     }
     
+    // Portion size dynamic price label
+    let priceHtml = "";
+    const choiceGroups = p.choiceGroups || p.optionGroups || [];
+    if (p.price === 0 && choiceGroups.length > 0) {
+      const firstGroup = choiceGroups[0];
+      const opts = firstGroup.options || firstGroup.choices || [];
+      const minPrice = opts.reduce((min, opt) => Math.min(min, opt.price || 0), Infinity);
+      if (minPrice !== Infinity) {
+        priceHtml = `<span class="product-price">From ₹${minPrice}</span>`;
+      } else {
+        priceHtml = `<span class="product-price">₹0</span>`;
+      }
+    } else {
+      priceHtml = `
+        <span class="product-original-price">₹${Math.round(p.price * 1.20)}</span>
+        <span class="product-price">₹${p.price}</span>
+        <span class="product-save-badge">SAVE</span>
+      `;
+    }
+
+    let lowStockHtml = "";
+    if (isItemInStock && remainingStock !== null && remainingStock <= (p.lowStockThreshold || 2)) {
+      lowStockHtml = `<span class="low-stock-warning">Only ${remainingStock} left!</span>`;
+    }
+
     card.innerHTML = `
       <div class="product-info">
         <div>
@@ -456,10 +490,9 @@ function renderProducts() {
           <h3 class="product-name">${p.name}</h3>
           <p class="product-desc">${p.description}</p>
         </div>
-        <div class="product-price-row">
-          <span class="product-original-price">₹${Math.round(p.price * 1.20)}</span>
-          <span class="product-price">₹${p.price}</span>
-          <span class="product-save-badge">SAVE</span>
+        <div class="product-price-row" style="align-items: center; gap: 8px;">
+          ${priceHtml}
+          ${lowStockHtml}
         </div>
       </div>
       <div class="product-img-container">
@@ -499,7 +532,13 @@ function initiateAddToCart(productId) {
     return;
   }
   const product = TFL_DB.getProducts().find(p => p.id === productId);
-  if (!product || !product.inStock) return;
+  if (!product) return;
+  const remaining = product.stockLimit !== undefined && product.stockLimit !== null ? Math.max(0, product.stockLimit - (product.currentStockSold || 0)) : null;
+  const isItemInStock = product.inStock && (remaining === null || remaining > 0);
+  if (!isItemInStock) {
+    TFL_DB.showToast("Sorry, this item is out of stock!", "warning");
+    return;
+  }
   
   selectedProductForAddons = product;
   openAddonsModal(product);
@@ -573,8 +612,14 @@ function adjustAddonProductQty(offset) {
   const qtyEl = document.getElementById("addon-item-qty");
   if (!qtyEl) return;
   let currentQty = parseInt(qtyEl.innerText) || 1;
+  const p = selectedProductForAddons;
+  const remaining = p && p.stockLimit !== undefined && p.stockLimit !== null ? Math.max(0, p.stockLimit - (p.currentStockSold || 0)) : null;
   currentQty += offset;
   if (currentQty < 1) currentQty = 1;
+  if (remaining !== null && currentQty > remaining) {
+    TFL_DB.showToast(`Only ${remaining} items are left in stock.`, "warning");
+    currentQty = remaining;
+  }
   qtyEl.innerText = currentQty;
   
   // Clamp all condiment quantities to the new limit
@@ -678,7 +723,12 @@ function openAddonsModal(product) {
       radio.checked = optionIndex === 0;
 
       const span = document.createElement("span");
-      const priceText = optPrice > 0 ? ` (+₹${optPrice})` : '';
+      let priceText = "";
+      if (product.price === 0) {
+        priceText = ` (₹${optPrice})`;
+      } else {
+        priceText = optPrice > 0 ? ` (+₹${optPrice})` : '';
+      }
       span.innerText = `${optName}${priceText}`;
 
       label.appendChild(radio);
@@ -1337,6 +1387,14 @@ function renderCartItems() {
 
 // Modify cart quantities
 function updateCartQty(index, offset) {
+  if (offset > 0 && cart[index] && cart[index].product) {
+    const product = cart[index].product;
+    const remaining = product.stockLimit !== undefined && product.stockLimit !== null ? Math.max(0, product.stockLimit - (product.currentStockSold || 0)) : null;
+    if (remaining !== null && cart[index].quantity + offset > remaining) {
+      TFL_DB.showToast(`Only ${remaining} items are left in stock.`, "warning");
+      return;
+    }
+  }
   cart[index].quantity += offset;
   
   if (cart[index].quantity <= 0) {
@@ -1415,6 +1473,12 @@ function resetCheckoutForm() {
   const codOption = document.querySelector('input[name="payment-mode"][value="COD"]');
   if (codOption) codOption.checked = true;
   toggleUpiSection(false);
+  
+  const checkoutBtn = document.getElementById("btn-submit-checkout");
+  if (checkoutBtn) {
+    checkoutBtn.disabled = false;
+    checkoutBtn.innerText = "Place Order";
+  }
 }
 
 // Toggle UPI payment instructions
@@ -1549,6 +1613,33 @@ async function submitOrder(event) {
   const note = document.getElementById("cust-note").value.trim();
   const paymentMode = document.querySelector('input[name="payment-mode"]:checked').value;
   
+  // Live stock validation check
+  const checkoutBtn = document.getElementById("btn-submit-checkout");
+  if (checkoutBtn) {
+    checkoutBtn.disabled = true;
+    checkoutBtn.innerText = "Verifying stock...";
+  }
+
+  try {
+    const stockCheck = await TFL_DB.verifyStockAndIncrement(cart);
+    if (!stockCheck.success) {
+      TFL_DB.showToast(stockCheck.errorMessage, "error");
+      if (checkoutBtn) {
+        checkoutBtn.disabled = false;
+        checkoutBtn.innerText = "Place Order";
+      }
+      return;
+    }
+  } catch (e) {
+    console.error("Stock check failed:", e);
+    TFL_DB.showToast("Stock validation failed. Please try again.", "error");
+    if (checkoutBtn) {
+      checkoutBtn.disabled = false;
+      checkoutBtn.innerText = "Place Order";
+    }
+    return;
+  }
+
   const orderId = await generateOrderCode();
   const cartSubtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
   const delivery = calculateDeliveryCharge(cartSubtotal, settings);

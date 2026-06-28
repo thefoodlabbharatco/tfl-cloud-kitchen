@@ -178,6 +178,7 @@ function handleDbUpdated(event) {
   adminRefreshTimer = setTimeout(() => {
     renderTabContent(currentTab);
     updateSyncStatusIndicator();
+    checkLowStockAlerts();
   }, 120);
 }
 
@@ -289,6 +290,7 @@ function switchTab(tabId) {
     dashboard: "Operations Dashboard",
     orders: "Incoming Customer Orders",
     products: "Menu Formulations Manager",
+    inventory: "Daily Stock & Inventory Control",
     subbrands: "Sub-Brands & Categorization",
     announcements: "Updates & Offers announcements",
     promocodes: "Promo Codes Manager",
@@ -350,6 +352,9 @@ function renderTabContent(tabId) {
       break;
     case 'settings':
       renderSettingsForm();
+      break;
+    case 'inventory':
+      renderInventoryTable();
       break;
   }
   lucide.createIcons();
@@ -1263,6 +1268,101 @@ function toggleProductPriceVisibility() {
   TFL_DB.showToast(nextHidden ? "Customer menu prices are now hidden." : "Customer menu prices are now visible.", "success");
 }
 
+function renderInventoryTable() {
+  const products = TFL_DB.getProducts();
+  const container = document.getElementById("inventory-admin-list");
+  if (!container) return;
+  container.innerHTML = "";
+  
+  if (products.length === 0) {
+    container.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align: center; color: var(--color-text-muted);">
+          No products formulated yet. Create products in the Products tab first!
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  products.forEach(p => {
+    const row = document.createElement("tr");
+    
+    const remaining = p.stockLimit !== undefined && p.stockLimit !== null 
+      ? Math.max(0, p.stockLimit - (p.currentStockSold || 0)) 
+      : "Unlimited";
+      
+    let statusBadge = `<span class="badge badge-veg">In Stock</span>`;
+    if (remaining === 0) {
+      statusBadge = `<span class="badge badge-nonveg">Out of Stock</span>`;
+    } else if (remaining !== "Unlimited" && remaining <= (p.lowStockThreshold || 2)) {
+      statusBadge = `<span class="badge" style="background-color: rgba(249,115,22,0.15); color: #f97316; border: 1px solid rgba(249,115,22,0.3);">Low Stock</span>`;
+    }
+
+    const subBrandName = getProductSubBrandName(p);
+
+    row.innerHTML = `
+      <td data-label="Product Info">
+        <div style="font-weight: 600; color: #fff;">${p.name}</div>
+        <div style="font-size: 0.7rem; color: var(--color-text-muted);">${p.veg ? 'Veg' : 'Non-Veg'}</div>
+      </td>
+      <td data-label="Category" style="font-size: 0.8rem;">${subBrandName}</td>
+      <td data-label="Stock Limit">
+        <input type="number" class="form-control inv-limit" data-id="${p.id}" value="${p.stockLimit !== null && p.stockLimit !== undefined ? p.stockLimit : ''}" placeholder="Unlimited" style="width: 100px; height: 32px; font-size: 0.8rem; text-align: center;" onchange="saveInventoryField('${p.id}', 'limit', this.value)">
+      </td>
+      <td data-label="Low Threshold">
+        <input type="number" class="form-control inv-threshold" data-id="${p.id}" value="${p.lowStockThreshold !== undefined ? p.lowStockThreshold : 2}" style="width: 80px; height: 32px; font-size: 0.8rem; text-align: center;" onchange="saveInventoryField('${p.id}', 'threshold', this.value)">
+      </td>
+      <td data-label="Sold Today">
+        <input type="number" class="form-control inv-sold" data-id="${p.id}" value="${p.currentStockSold || 0}" style="width: 80px; height: 32px; font-size: 0.8rem; text-align: center;" onchange="saveInventoryField('${p.id}', 'sold', this.value)">
+      </td>
+      <td data-label="Remaining Stock" style="font-weight: 600; font-size: 0.85rem; color: ${remaining === 0 ? 'var(--color-danger)' : (remaining <= (p.lowStockThreshold || 2) ? '#f97316' : '#fff')};">
+        ${remaining}
+      </td>
+      <td data-label="Status">${statusBadge}</td>
+    `;
+    container.appendChild(row);
+  });
+}
+
+function saveInventoryField(productId, field, value) {
+  const products = TFL_DB.getProducts();
+  const p = products.find(prod => prod.id === productId);
+  if (!p) return;
+  
+  if (field === 'limit') {
+    p.stockLimit = value.trim() === '' ? null : parseInt(value);
+  } else if (field === 'threshold') {
+    p.lowStockThreshold = parseInt(value) || 0;
+  } else if (field === 'sold') {
+    p.currentStockSold = parseInt(value) || 0;
+  }
+  
+  TFL_DB.saveProducts(products);
+  renderInventoryTable();
+  triggerBackgroundSync();
+}
+
+function resetDailyInventory() {
+  if (!confirm("Are you sure you want to reset today's inventory sold counts? This will set 'Sold Today' to 0 for all items.")) return;
+  
+  const products = TFL_DB.getProducts();
+  products.forEach(p => {
+    p.currentStockSold = 0;
+  });
+  TFL_DB.saveProducts(products);
+  TFL_DB.showToast("Daily inventory sold counts successfully reset to 0!", "success");
+  
+  localStorage.removeItem("tfl_low_stock_alerts_sent");
+  
+  renderInventoryTable();
+  triggerBackgroundSync();
+}
+
+window.saveInventoryField = saveInventoryField;
+window.resetDailyInventory = resetDailyInventory;
+window.renderInventoryTable = renderInventoryTable;
+
 function calculateModalProfit() {
   const cost = parseFloat(document.getElementById("p-cost").value) || 0;
   const price = parseFloat(document.getElementById("p-price").value) || 0;
@@ -1385,6 +1485,9 @@ function openProductModal(productId = null) {
     document.getElementById("p-bestseller").checked = product.bestseller;
     document.getElementById("p-tags").value = product.tags ? (Array.isArray(product.tags) ? product.tags.join(", ") : product.tags) : "";
     document.getElementById("p-show-out-of-stock").checked = product.showOutOfStock !== false;
+    document.getElementById("p-stock-limit").value = product.stockLimit !== null && product.stockLimit !== undefined ? product.stockLimit : "";
+    document.getElementById("p-stock-threshold").value = product.lowStockThreshold !== undefined ? product.lowStockThreshold : 2;
+    document.getElementById("p-stock-sold").value = product.currentStockSold || 0;
     
     // Check checkboxes and set prices/costs
     if (product.condiments) {
@@ -1417,6 +1520,9 @@ function openProductModal(productId = null) {
     document.getElementById("p-image-status").style.display = "none";
     document.getElementById("p-tags").value = "";
     document.getElementById("p-show-out-of-stock").checked = true;
+    document.getElementById("p-stock-limit").value = "";
+    document.getElementById("p-stock-threshold").value = 2;
+    document.getElementById("p-stock-sold").value = 0;
     document.querySelectorAll('input[name^="p-condiment-price-"], input[name^="p-condiment-cost-"]').forEach(inp => {
       inp.disabled = true;
       inp.value = 0;
@@ -1448,6 +1554,10 @@ async function handleProductSubmit(event) {
   const tagsInput = document.getElementById("p-tags").value.trim();
   const tags = tagsInput ? tagsInput.split(",").map(t => t.trim()).filter(Boolean) : [];
   const showOutOfStock = document.getElementById("p-show-out-of-stock").checked;
+  const limitVal = document.getElementById("p-stock-limit").value.trim();
+  const stockLimit = limitVal === "" ? null : parseInt(limitVal);
+  const lowStockThreshold = parseInt(document.getElementById("p-stock-threshold").value) || 0;
+  const currentStockSold = parseInt(document.getElementById("p-stock-sold").value) || 0;
   
   const checkedBoxes = document.querySelectorAll('input[name="p-condiment-opt"]:checked');
   const condimentsListEl = document.getElementById("product-condiments-checklist");
@@ -1497,6 +1607,9 @@ async function handleProductSubmit(event) {
       bestseller: tags.some(t => t.toLowerCase() === 'bestseller') || bestseller,
       tags,
       showOutOfStock,
+      stockLimit,
+      lowStockThreshold,
+      currentStockSold,
       condiments,
       hiddenCondiments,
       optionGroups,
@@ -1507,7 +1620,9 @@ async function handleProductSubmit(event) {
     const newId = "p-" + Date.now();
     products.push({
       id: newId,
-      name, description: desc, category, image, costPrice: cost, price, veg, bestseller: tags.some(t => t.toLowerCase() === 'bestseller') || bestseller, tags, showOutOfStock, condiments, hiddenCondiments, optionGroups, pairings,
+      name, description: desc, category, image, costPrice: cost, price, veg, bestseller: tags.some(t => t.toLowerCase() === 'bestseller') || bestseller, tags, showOutOfStock, 
+      stockLimit, lowStockThreshold, currentStockSold,
+      condiments, hiddenCondiments, optionGroups, pairings,
       inStock: true
     });
   }
@@ -2566,41 +2681,89 @@ function handleManualProductSelectChange() {
   const productId = select.value;
   const container = document.getElementById("mo-condiments-container");
   const list = document.getElementById("mo-condiments-list");
+  const choiceContainer = document.getElementById("mo-choices-container");
+  const choiceList = document.getElementById("mo-choices-list");
   
-  if (!container || !list) return;
-  
-  container.style.display = "none";
-  list.innerHTML = "";
+  if (container) {
+    container.style.display = "none";
+    list.innerHTML = "";
+  }
+  if (choiceContainer) {
+    choiceContainer.style.display = "none";
+    choiceList.innerHTML = "";
+  }
   
   if (!productId) return;
   
   const products = TFL_DB.getProducts();
   const product = products.find(p => p.id === productId);
-  if (!product || !product.condiments || product.condiments.length === 0) return;
-  
-  container.style.display = "block";
-  product.condiments.forEach((cond, idx) => {
-    const itemDiv = document.createElement("div");
-    itemDiv.style.display = "flex";
-    itemDiv.style.alignItems = "center";
-    itemDiv.style.justifyContent = "space-between";
-    itemDiv.style.gap = "8px";
-    itemDiv.style.fontSize = "0.78rem";
-    itemDiv.style.padding = "4px 0";
-    itemDiv.style.borderBottom = "1px dashed rgba(255,255,255,0.03)";
-    
-    itemDiv.innerHTML = `
-      <label class="checkbox-label" style="margin: 0; display: flex; align-items: center; gap: 6px; cursor: pointer;">
-        <input type="checkbox" class="checkbox-custom mo-condiment-checkbox" data-index="${idx}" data-name="${cond.name}" data-price="${cond.price}" data-cost="${cond.costPrice || 0}" style="margin: 0;">
-        <span style="color: var(--color-text);">${cond.name} (Sell: +₹${cond.price || 0}, Cost: +₹${cond.costPrice || 0})</span>
-      </label>
-      <div style="display: flex; align-items: center; gap: 4px;">
-        <span style="color: var(--color-text-muted);">Qty:</span>
-        <input type="number" class="form-control mo-condiment-qty" data-index="${idx}" min="1" value="1" style="width: 50px; height: 26px; padding: 2px 4px; font-size: 0.75rem; border-radius: 4px; text-align: center; background: rgba(0,0,0,0.3); border: 1px solid var(--color-border); color: #fff;">
-      </div>
-    `;
-    list.appendChild(itemDiv);
-  });
+  if (!product) return;
+
+  // Render choice groups (portion size radios)
+  const choiceGroups = product.choiceGroups || product.optionGroups || [];
+  if (choiceContainer && choiceList && choiceGroups.length > 0) {
+    choiceContainer.style.display = "block";
+    choiceGroups.forEach((group, gIdx) => {
+      const title = document.createElement("div");
+      title.style.fontWeight = "600";
+      title.style.color = "#fff";
+      title.style.fontSize = "0.75rem";
+      title.style.marginBottom = "4px";
+      title.innerText = group.name;
+      choiceList.appendChild(title);
+
+      const options = group.options || group.choices || [];
+      options.forEach((opt, oIdx) => {
+        const optName = typeof opt === 'object' ? opt.name : opt;
+        const optPrice = typeof opt === 'object' ? (opt.price || 0) : 0;
+        const optCost = typeof opt === 'object' ? (opt.costPrice || 0) : 0;
+        
+        const label = document.createElement("label");
+        label.className = "checkbox-label";
+        label.style.margin = "2px 0 6px 0";
+        label.style.display = "flex";
+        label.style.alignItems = "center";
+        label.style.gap = "6px";
+        label.style.cursor = "pointer";
+        label.style.fontSize = "0.78rem";
+
+        const priceLabel = product.price === 0 ? `₹${optPrice}` : `+₹${optPrice}`;
+
+        label.innerHTML = `
+          <input type="radio" name="mo-choice-group-${gIdx}" class="mo-choice-radio" value="${optName}" data-group="${group.name}" data-price="${optPrice}" data-cost="${optCost}" ${oIdx === 0 ? 'checked' : ''} style="margin: 0;">
+          <span style="color: var(--color-text);">${optName} (Sell: ${priceLabel}, Cost: ₹${optCost})</span>
+        `;
+        choiceList.appendChild(label);
+      });
+    });
+  }
+
+  // Render condiments checkboxes
+  if (product.condiments && product.condiments.length > 0) {
+    container.style.display = "block";
+    product.condiments.forEach((cond, idx) => {
+      const itemDiv = document.createElement("div");
+      itemDiv.style.display = "flex";
+      itemDiv.style.alignItems = "center";
+      itemDiv.style.justifyContent = "space-between";
+      itemDiv.style.gap = "8px";
+      itemDiv.style.fontSize = "0.78rem";
+      itemDiv.style.padding = "4px 0";
+      itemDiv.style.borderBottom = "1px dashed rgba(255,255,255,0.03)";
+      
+      itemDiv.innerHTML = `
+        <label class="checkbox-label" style="margin: 0; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+          <input type="checkbox" class="checkbox-custom mo-condiment-checkbox" data-index="${idx}" data-name="${cond.name}" data-price="${cond.price}" data-cost="${cond.costPrice || 0}" style="margin: 0;">
+          <span style="color: var(--color-text);">${cond.name} (Sell: +₹${cond.price || 0}, Cost: +₹${cond.costPrice || 0})</span>
+        </label>
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <span style="color: var(--color-text-muted);">Qty:</span>
+          <input type="number" class="form-control mo-condiment-qty" data-index="${idx}" min="1" value="1" style="width: 50px; height: 26px; padding: 2px 4px; font-size: 0.75rem; border-radius: 4px; text-align: center; background: rgba(0,0,0,0.3); border: 1px solid var(--color-border); color: #fff;">
+        </div>
+      `;
+      list.appendChild(itemDiv);
+    });
+  }
 }
 
 window.handleManualProductSelectChange = handleManualProductSelectChange;
@@ -2684,9 +2847,35 @@ function addManualOrderItem() {
   const products = TFL_DB.getProducts();
   const product = products.find(p => p.id === productId);
   if (!product) return;
+
+  const remaining = product.stockLimit !== undefined && product.stockLimit !== null ? Math.max(0, product.stockLimit - (product.currentStockSold || 0)) : null;
+  if (remaining !== null && qty > remaining) {
+    TFL_DB.showToast(`Only ${remaining} items are left in stock for this product.`, "error");
+    return;
+  }
   
   // Collect selected condiments
   const selectedCondiments = [];
+  
+  // Collect selected choice group options (radio buttons)
+  const selectedChoices = document.querySelectorAll("#mo-choices-list input[type='radio']:checked");
+  selectedChoices.forEach(radio => {
+    const groupName = radio.getAttribute("data-group") || "Option";
+    const choiceName = radio.value;
+    const choicePrice = parseFloat(radio.getAttribute("data-price")) || 0;
+    const choiceCost = parseFloat(radio.getAttribute("data-cost")) || 0;
+    if (choiceName) {
+      selectedCondiments.push({
+        name: `${groupName}: ${choiceName}`,
+        price: choicePrice,
+        costPrice: choiceCost,
+        quantity: qty,
+        type: "choice",
+        group: groupName,
+        choice: choiceName
+      });
+    }
+  });
   const checkboxes = document.querySelectorAll(".mo-condiment-checkbox");
   checkboxes.forEach(cb => {
     if (cb.checked) {
@@ -2944,6 +3133,13 @@ async function handleManualOrderSubmit(event) {
   const secsStr = String(orderDateObj.getSeconds()).padStart(2, '0');
   const orderDateStr = `${dayStr}/${monthStr}/${yearStr}, ${hrsStr}:${minsStr}:${secsStr}`;
   
+  TFL_DB.showToast("Validating inventory stock...", "info");
+  const stockCheck = await TFL_DB.verifyStockAndIncrement(manualOrderCart);
+  if (!stockCheck.success) {
+    TFL_DB.showToast(stockCheck.errorMessage, "error");
+    return;
+  }
+
   TFL_DB.showToast("Allocating non-colliding order ID...", "info");
   const orderId = await getNextOrderSequenceForDate(year, month, date);
   
@@ -2989,5 +3185,88 @@ async function handleManualOrderSubmit(event) {
 window.openManualOrderModal = openManualOrderModal;
 window.closeManualOrderModal = closeManualOrderModal;
 window.handleManualOrderSubmit = handleManualOrderSubmit;
+
+function checkLowStockAlerts() {
+  if (!loggedInUser) return;
+  const products = TFL_DB.getProducts();
+  const alertsContainer = document.getElementById("low-stock-alerts-container");
+  if (!alertsContainer) return;
+  
+  const todayStr = new Date().toISOString().split("T")[0];
+  let sentAlerts = {};
+  try {
+    sentAlerts = JSON.parse(localStorage.getItem("tfl_low_stock_alerts_sent") || "{}");
+  } catch (e) {}
+
+  if (sentAlerts.date !== todayStr) {
+    sentAlerts = { date: todayStr, productIds: [] };
+  }
+
+  const lowStockItems = [];
+  products.forEach(p => {
+    if (p.stockLimit !== undefined && p.stockLimit !== null) {
+      const remaining = p.stockLimit - (p.currentStockSold || 0);
+      if (remaining <= (p.lowStockThreshold || 2)) {
+        lowStockItems.push({ product: p, remaining });
+        
+        if (!sentAlerts.productIds.includes(p.id)) {
+          sentAlerts.productIds.push(p.id);
+          localStorage.setItem("tfl_low_stock_alerts_sent", JSON.stringify(sentAlerts));
+          
+          TFL_DB.showToast(`Warning: "${p.name}" has reached low stock! (${remaining} left)`, "warning");
+          
+          try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+            setTimeout(() => {
+              const osc2 = audioCtx.createOscillator();
+              osc2.connect(gain);
+              osc2.frequency.setValueAtTime(554.37, audioCtx.currentTime);
+              osc2.start();
+              osc2.stop(audioCtx.currentTime + 0.25);
+            }, 180);
+          } catch (e) {
+            console.warn("Could not play audio chime:", e);
+          }
+        }
+      }
+    }
+  });
+
+  if (lowStockItems.length > 0) {
+    alertsContainer.style.display = "flex";
+    alertsContainer.innerHTML = lowStockItems.map(item => {
+      const p = item.product;
+      const rem = item.remaining;
+      const color = rem === 0 ? "var(--color-danger)" : "var(--color-warning)";
+      const bg = rem === 0 ? "rgba(239, 68, 68, 0.1)" : "rgba(249, 115, 22, 0.1)";
+      const border = rem === 0 ? "rgba(239, 68, 68, 0.3)" : "rgba(249, 115, 22, 0.3)";
+      const statusText = rem === 0 ? "OUT OF STOCK" : `ONLY ${rem} LEFT`;
+
+      return `
+        <div style="background: ${bg}; border: 1px solid ${border}; border-radius: var(--radius-sm); padding: var(--space-xs) var(--space-sm); display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 0.8rem;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="alert-triangle" style="width: 14px; height: 14px; color: ${color};"></i>
+            <span style="color: #fff; font-weight: 500;">"${p.name}" is running low on stock!</span>
+          </div>
+          <span style="color: ${color}; font-weight: 700; font-size: 0.72rem; text-transform: uppercase; background: rgba(0,0,0,0.2); padding: 2px 8px; border-radius: 999px;">${statusText}</span>
+        </div>
+      `;
+    }).join("");
+    if (typeof lucide !== "undefined") lucide.createIcons();
+  } else {
+    alertsContainer.style.display = "none";
+    alertsContainer.innerHTML = "";
+  }
+}
+
+window.checkLowStockAlerts = checkLowStockAlerts;
 
 

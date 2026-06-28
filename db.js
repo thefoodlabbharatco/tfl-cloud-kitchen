@@ -904,6 +904,91 @@ const TFL_DB = {
     this.flushPendingCloudOrders();
   },
 
+  async verifyStockAndIncrement(cartItems) {
+    if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+      return { success: true };
+    }
+    const settings = this.getSettings();
+    if (!settings.supabaseEnabled) {
+      const products = this.getProducts();
+      for (const item of cartItems) {
+        const prodId = item.id || (item.product ? item.product.id : null);
+        if (!prodId) continue;
+        const p = products.find(prod => prod.id === prodId);
+        if (!p) continue;
+        if (p.stockLimit !== undefined && p.stockLimit !== null) {
+          const remaining = p.stockLimit - (p.currentStockSold || 0);
+          if (remaining < item.quantity) {
+            return { success: false, errorMessage: `Sorry, "${p.name}" just sold out!` };
+          }
+        }
+      }
+      cartItems.forEach(item => {
+        const prodId = item.id || (item.product ? item.product.id : null);
+        if (!prodId) continue;
+        const p = products.find(prod => prod.id === prodId);
+        if (p) {
+          p.currentStockSold = (p.currentStockSold || 0) + item.quantity;
+        }
+      });
+      this.saveProducts(products);
+      return { success: true };
+    }
+
+    try {
+      await this.syncFromSupabase();
+      const products = this.getProducts();
+      for (const item of cartItems) {
+        const prodId = item.id || (item.product ? item.product.id : null);
+        if (!prodId) continue;
+        const p = products.find(prod => prod.id === prodId);
+        if (!p) continue;
+        if (p.stockLimit !== undefined && p.stockLimit !== null) {
+          const remaining = p.stockLimit - (p.currentStockSold || 0);
+          if (remaining < item.quantity) {
+            return { success: false, errorMessage: `Sorry, "${p.name}" just sold out!` };
+          }
+        }
+      }
+      cartItems.forEach(item => {
+        const prodId = item.id || (item.product ? item.product.id : null);
+        if (!prodId) continue;
+        const p = products.find(prod => prod.id === prodId);
+        if (p) {
+          p.currentStockSold = (p.currentStockSold || 0) + item.quantity;
+        }
+      });
+      this.saveProducts(products);
+      await this.syncToSupabase();
+      return { success: true };
+    } catch (e) {
+      console.error("verifyStockAndIncrement error:", e);
+      const products = this.getProducts();
+      for (const item of cartItems) {
+        const prodId = item.id || (item.product ? item.product.id : null);
+        if (!prodId) continue;
+        const p = products.find(prod => prod.id === prodId);
+        if (!p) continue;
+        if (p.stockLimit !== undefined && p.stockLimit !== null) {
+          const remaining = p.stockLimit - (p.currentStockSold || 0);
+          if (remaining < item.quantity) {
+            return { success: false, errorMessage: `Sorry, "${p.name}" just sold out!` };
+          }
+        }
+      }
+      cartItems.forEach(item => {
+        const prodId = item.id || (item.product ? item.product.id : null);
+        if (!prodId) continue;
+        const p = products.find(prod => prod.id === prodId);
+        if (p) {
+          p.currentStockSold = (p.currentStockSold || 0) + item.quantity;
+        }
+      });
+      this.saveProducts(products);
+      return { success: true };
+    }
+  },
+
   async flushPendingCloudOrders() {
     if (this._isFlushingOrders) return;
     const settings = this.getSettings();
