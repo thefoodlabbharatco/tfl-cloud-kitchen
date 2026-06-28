@@ -921,6 +921,7 @@ body {
   top: 0;
   z-index: 70;
   min-height: 72px;
+  max-width: none !important;
   margin: -20px calc(clamp(18px, 3vw, 34px) * -1) 22px;
   padding: 14px clamp(18px, 3vw, 34px);
   background: rgba(246, 247, 244, 0.92);
