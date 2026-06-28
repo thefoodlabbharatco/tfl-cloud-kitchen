@@ -923,14 +923,14 @@ const TFL_DB = {
           }
         }
       }
-      cartItems.forEach(item => {
+      for (const item of cartItems) {
         const prodId = item.id || (item.product ? item.product.id : null);
         if (!prodId) continue;
         const p = products.find(prod => prod.id === prodId);
         if (p) {
           p.currentStockSold = (p.currentStockSold || 0) + item.quantity;
         }
-      });
+      }
       this.saveProducts(products);
       return { success: true };
     }
@@ -950,14 +950,14 @@ const TFL_DB = {
           }
         }
       }
-      cartItems.forEach(item => {
+      for (const item of cartItems) {
         const prodId = item.id || (item.product ? item.product.id : null);
         if (!prodId) continue;
         const p = products.find(prod => prod.id === prodId);
         if (p) {
           p.currentStockSold = (p.currentStockSold || 0) + item.quantity;
         }
-      });
+      }
       this.saveProducts(products);
       await this.syncToSupabase();
       return { success: true };
@@ -976,14 +976,14 @@ const TFL_DB = {
           }
         }
       }
-      cartItems.forEach(item => {
+      for (const item of cartItems) {
         const prodId = item.id || (item.product ? item.product.id : null);
         if (!prodId) continue;
         const p = products.find(prod => prod.id === prodId);
         if (p) {
           p.currentStockSold = (p.currentStockSold || 0) + item.quantity;
         }
-      });
+      }
       this.saveProducts(products);
       return { success: true };
     }
