@@ -440,7 +440,12 @@ function renderProducts() {
       actionBtnHtml = `<button class="add-btn-empty add-btn-disabled" type="button" disabled>Closed</button>`;
     } else if (!isItemInStock) {
       const delay = p.prepDelay || 20;
-      actionBtnHtml = `<button class="add-btn-preorder" type="button" onclick="initiateAddToCart('${p.id}', true)">PRE-ORDER +${delay}m</button>`;
+      actionBtnHtml = `
+        <div class="out-of-stock-actions">
+          <button class="add-btn-soldout" type="button" disabled>Sold Out</button>
+          <button class="add-btn-waitorder" type="button" onclick="initiateAddToCart('${p.id}', true)">Wait for Order (+${delay}m)</button>
+        </div>
+      `;
     } else if (totalQty === 0) {
       actionBtnHtml = `
         <button class="add-btn-empty btn-primary" onclick="initiateAddToCart('${p.id}')">
@@ -497,7 +502,7 @@ function renderProducts() {
           ${lowStockHtml}
         </div>
       </div>
-      <div class="product-img-container">
+      <div class="product-img-container ${!isItemInStock ? 'is-out-of-stock' : ''}">
         <img src="${p.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=200&q=80'}" alt="${p.name}" loading="lazy" decoding="async">
         <div class="product-action">
           ${actionBtnHtml}
