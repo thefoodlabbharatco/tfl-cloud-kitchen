@@ -21,6 +21,7 @@ let vegFilter = 'all'; // 'all', 'veg', 'nonveg'
 let priceSortDirection = null; // null, 'asc', 'desc'
 let searchQuery = "";
 let selectedProductForAddons = null;
+let selectedProductIsPreOrder = false;
 let currentReceiptOrder = null;
 let productRenderFrame = null;
 let appliedPromoCode = null; // Stores { code, discountPercent }
@@ -438,7 +439,8 @@ function renderProducts() {
     if (!kitchenOpen) {
       actionBtnHtml = `<button class="add-btn-empty add-btn-disabled" type="button" disabled>Closed</button>`;
     } else if (!isItemInStock) {
-      actionBtnHtml = `<button class="add-btn-empty add-btn-disabled" type="button" disabled style="background-color: var(--color-danger) !important; border-color: var(--color-danger) !important; color: #fff !important; cursor: not-allowed; font-weight: 700; width: 100%; font-size: 0.72rem; padding: 6px 4px; height: 36px; border-radius: var(--radius-sm); border: 1px solid transparent; box-shadow: none; white-space: nowrap;">Not Available</button>`;
+      const delay = p.prepDelay || 20;
+      actionBtnHtml = `<button class="add-btn-preorder" type="button" onclick="initiateAddToCart('${p.id}', true)">PRE-ORDER +${delay}m</button>`;
     } else if (totalQty === 0) {
       actionBtnHtml = `
         <button class="add-btn-empty btn-primary" onclick="initiateAddToCart('${p.id}')">
@@ -450,7 +452,7 @@ function renderProducts() {
         <div class="add-btn-wrapper">
           <button onclick="handleProductDecrement('${p.id}')">-</button>
           <span class="add-btn-qty">${totalQty}</span>
-          <button onclick="initiateAddToCart('${p.id}')">+</button>
+          <button onclick="initiateAddToCart('${p.id}', ${!isItemInStock})">+</button>
         </div>
       `;
     }
@@ -525,7 +527,7 @@ function getCartProductQty(productId) {
 }
 
 // Initiate add to cart, check if condiments needed
-function initiateAddToCart(productId) {
+function initiateAddToCart(productId, isPreOrder = false) {
   const settings = TFL_DB.getSettings();
   if (!settings.isOpen) {
     TFL_DB.showToast("Kitchen is closed right now. You can view the menu, but ordering is disabled.", "warning");
@@ -533,14 +535,18 @@ function initiateAddToCart(productId) {
   }
   const product = TFL_DB.getProducts().find(p => p.id === productId);
   if (!product) return;
-  const remaining = product.stockLimit !== undefined && product.stockLimit !== null ? Math.max(0, product.stockLimit - (product.currentStockSold || 0)) : null;
-  const isItemInStock = product.inStock && (remaining === null || remaining > 0);
-  if (!isItemInStock) {
-    TFL_DB.showToast("Sorry, this item is out of stock!", "warning");
-    return;
+  
+  if (!isPreOrder) {
+    const remaining = product.stockLimit !== undefined && product.stockLimit !== null ? Math.max(0, product.stockLimit - (product.currentStockSold || 0)) : null;
+    const isItemInStock = product.inStock && (remaining === null || remaining > 0);
+    if (!isItemInStock) {
+      TFL_DB.showToast("Sorry, this item is out of stock!", "warning");
+      return;
+    }
   }
   
   selectedProductForAddons = product;
+  selectedProductIsPreOrder = isPreOrder;
   openAddonsModal(product);
 }
 
@@ -803,7 +809,7 @@ function openAddonsModal(product) {
       }
     });
     
-    addProductToCart(product, productQty, selectedCondiments);
+    addProductToCart(product, productQty, selectedCondiments, selectedProductIsPreOrder);
     toggleAddonsModal(false);
   };
 
@@ -864,19 +870,22 @@ function openAddonsModal(product) {
 
 function addPairedProductToCart(pairedProductId) {
   const product = TFL_DB.getProducts().find(p => p.id === pairedProductId);
-  if (!product || !product.inStock) return;
+  if (!product) return;
+  
+  const remaining = product.stockLimit !== undefined && product.stockLimit !== null ? Math.max(0, product.stockLimit - (product.currentStockSold || 0)) : null;
+  const isItemInStock = product.inStock && (remaining === null || remaining > 0);
   
   const conds = product.condiments || [];
   const choiceGroups = product.optionGroups || product.choiceGroups || [];
   
   if (conds.length === 0 && choiceGroups.length === 0) {
-    addProductToCart(product, 1, []);
+    addProductToCart(product, 1, [], !isItemInStock);
     TFL_DB.showToast(`${product.name} added to cart!`, "success");
     updatePairingsDisplay();
   } else {
     toggleAddonsModal(false);
     setTimeout(() => {
-      initiateAddToCart(pairedProductId);
+      initiateAddToCart(pairedProductId, !isItemInStock);
     }, 300);
   }
 }
@@ -935,12 +944,13 @@ function areCondimentsEqual(cond1, cond2) {
 }
 
 // Helper to push items to Cart array
-function addProductToCart(product, quantity, condiments) {
+function addProductToCart(product, quantity, condiments, isPreOrder = false) {
   if (currentReceiptOrder) {
     const items = currentReceiptOrder.items || [];
     const existingIdx = items.findIndex(item => 
       item.id === product.id && 
-      areCondimentsEqual(item.condiments, condiments)
+      areCondimentsEqual(item.condiments, condiments) &&
+      (item.is_backorder || false) === (isPreOrder || false)
     );
     
     const basePrice = product.price;
@@ -963,7 +973,9 @@ function addProductToCart(product, quantity, condiments) {
         name: product.name,
         quantity: quantity,
         price: unitPrice,
-        condiments: condiments
+        condiments: condiments,
+        is_backorder: isPreOrder,
+        prep_delay_minutes: isPreOrder ? (product.prepDelay || 20) : undefined
       });
     }
     
@@ -980,10 +992,11 @@ function addProductToCart(product, quantity, condiments) {
     return;
   }
 
-  // Check if an item with the exact same product and condiments list already exists in cart
+  // Check if an item with the exact same product, condiments list, and pre-order status already exists in cart
   const existingIdx = cart.findIndex(item => 
     item.product.id === product.id && 
-    areCondimentsEqual(item.condiments, condiments)
+    areCondimentsEqual(item.condiments, condiments) &&
+    (item.is_backorder || false) === (isPreOrder || false)
   );
   
   const basePrice = product.price;
@@ -1006,7 +1019,9 @@ function addProductToCart(product, quantity, condiments) {
       product: product,
       quantity: quantity,
       condiments: condiments,
-      subtotal: subtotal
+      subtotal: subtotal,
+      is_backorder: isPreOrder,
+      prep_delay_minutes: isPreOrder ? (product.prepDelay || 20) : undefined
     });
   }
   
@@ -1364,10 +1379,16 @@ function renderCartItems() {
       : "";
       
     const eachPrice = (item.subtotal / item.quantity).toFixed(2);
+    const preorderBadgeStr = item.is_backorder 
+      ? `<span class="cart-preorder-badge" style="margin-left: 6px; vertical-align: middle;">Pre-Order (+${item.prep_delay_minutes || 20}m)</span>`
+      : "";
     row.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: flex-start;">
         <div>
-          <h4 style="font-size: 0.95rem; color: #fff;">${item.product.name}</h4>
+          <h4 style="font-size: 0.95rem; color: #fff; display: flex; align-items: center; flex-wrap: wrap;">
+            ${item.product.name}
+            ${preorderBadgeStr}
+          </h4>
           ${condimentListStr}
         </div>
         <span style="font-weight: 700; font-size: 0.95rem; color: #fff;">₹${item.subtotal}</span>
@@ -1387,7 +1408,7 @@ function renderCartItems() {
 
 // Modify cart quantities
 function updateCartQty(index, offset) {
-  if (offset > 0 && cart[index] && cart[index].product) {
+  if (offset > 0 && cart[index] && cart[index].product && !cart[index].is_backorder) {
     const product = cart[index].product;
     const remaining = product.stockLimit !== undefined && product.stockLimit !== null ? Math.max(0, product.stockLimit - (product.currentStockSold || 0)) : null;
     if (remaining !== null && cart[index].quantity + offset > remaining) {
@@ -1739,11 +1760,15 @@ function openReceiptModal(order) {
       ? `<div class="receipt-condiments" style="font-size: 0.75rem; color: var(--color-text-muted); padding-left: 10px;">+ Add-ons: ${condimentsList.join(', ')}</div>` 
       : '';
       
+    const preOrderBadge = item.is_backorder 
+      ? `<div style="font-size: 0.68rem; color: #f59e0b; font-weight: 700; padding-left: 10px; text-transform: uppercase; margin-top: -2px; margin-bottom: 2px;">[Pre-Order: +${item.prep_delay_minutes || 20}m delay]</div>`
+      : "";
     itemsHtml += `
       <div class="receipt-item-row">
         <span>${item.name} x ${item.quantity}</span>
         <span>₹${(item.price * item.quantity).toFixed(2)}</span>
       </div>
+      ${preOrderBadge}
       ${condimentsStr}
     `;
   });

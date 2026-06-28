@@ -653,7 +653,10 @@ function renderOrdersTable() {
         return c;
       });
       const condimentText = condimentNames.length > 0 ? ` (+ ${condimentNames.join(', ')})` : '';
-      itemsDetailHtml += `<div>• ${item.name} x ${item.quantity}${condimentText}</div>`;
+      const preOrderBadgeHtml = item.is_backorder 
+        ? ` <span class="status-pill status-pending" style="font-size: 0.62rem; padding: 1px 4px; background: rgba(245, 158, 11, 0.15) !important; color: #f59e0b !important; border: 1px solid rgba(245, 158, 11, 0.3) !important; font-weight: 700;">Pre-Order (+${item.prep_delay_minutes || 20}m)</span>`
+        : "";
+      itemsDetailHtml += `<div>• ${item.name} x ${item.quantity}${condimentText}${preOrderBadgeHtml}</div>`;
     });
     
     // Calculate cost details for Owner/Manager transparency
@@ -1037,7 +1040,7 @@ function exportOrdersCSV() {
   csvContent += "Order ID,Date,Name,WhatsApp,Address,Items,Subtotal,Promo Code,Discount %,Discount Amount,Delivery,Late Night Fee,Revenue,Cost,Net Profit,Payment Mode,Payment Status,Delivery Status\n";
   
   orders.forEach(o => {
-    const itemsText = o.items.map(i => `${i.name} x${i.quantity}`).join(" | ");
+    const itemsText = o.items.map(i => `${i.name} x${i.quantity}${i.is_backorder ? ' (Pre-Order)' : ''}`).join(" | ");
     const escapedAddress = o.customerAddress.replace(/"/g, '""');
     
     // Calculate cost for this specific order
@@ -1087,9 +1090,12 @@ function printReceiptFromAdmin(orderId) {
   const printWindow = window.open("", "_blank");
   let itemsHtml = "";
   order.items.forEach(item => {
+    const preOrderBadgeText = item.is_backorder 
+      ? ` <span style="font-size: 0.65rem; color: #f97316; font-weight: bold; border: 1px solid #f97316; padding: 1px 3px; border-radius: 3px; text-transform: uppercase;">Pre-Order (+${item.prep_delay_minutes || 20}m)</span>`
+      : "";
     itemsHtml += `
       <tr>
-        <td style="padding: 4px 0;">${item.name} x ${item.quantity}</td>
+        <td style="padding: 4px 0;">${item.name} x ${item.quantity}${preOrderBadgeText}</td>
         <td style="text-align: right; padding: 4px 0;">₹${(item.price * item.quantity).toFixed(2)}</td>
       </tr>
     `;
@@ -1519,6 +1525,7 @@ function openProductModal(productId = null) {
     document.getElementById("p-stock-limit").value = product.stockLimit !== null && product.stockLimit !== undefined ? product.stockLimit : "";
     document.getElementById("p-stock-threshold").value = product.lowStockThreshold !== undefined ? product.lowStockThreshold : 2;
     document.getElementById("p-stock-sold").value = product.currentStockSold || 0;
+    document.getElementById("p-prep-delay").value = product.prepDelay !== undefined && product.prepDelay !== null ? product.prepDelay : 20;
     
     // Check checkboxes and set prices/costs
     if (product.condiments) {
@@ -1554,6 +1561,7 @@ function openProductModal(productId = null) {
     document.getElementById("p-stock-limit").value = "";
     document.getElementById("p-stock-threshold").value = 2;
     document.getElementById("p-stock-sold").value = 0;
+    document.getElementById("p-prep-delay").value = 20;
     document.querySelectorAll('input[name^="p-condiment-price-"], input[name^="p-condiment-cost-"]').forEach(inp => {
       inp.disabled = true;
       inp.value = 0;
@@ -1589,6 +1597,7 @@ async function handleProductSubmit(event) {
   const stockLimit = limitVal === "" ? null : parseInt(limitVal);
   const lowStockThreshold = parseInt(document.getElementById("p-stock-threshold").value) || 0;
   const currentStockSold = parseInt(document.getElementById("p-stock-sold").value) || 0;
+  const prepDelay = parseInt(document.getElementById("p-prep-delay").value) || 20;
   
   const checkedBoxes = document.querySelectorAll('input[name="p-condiment-opt"]:checked');
   const condimentsListEl = document.getElementById("product-condiments-checklist");
@@ -1641,6 +1650,7 @@ async function handleProductSubmit(event) {
       stockLimit,
       lowStockThreshold,
       currentStockSold,
+      prepDelay,
       condiments,
       hiddenCondiments,
       optionGroups,
@@ -1652,7 +1662,7 @@ async function handleProductSubmit(event) {
     products.push({
       id: newId,
       name, description: desc, category, image, costPrice: cost, price, veg, bestseller: tags.some(t => t.toLowerCase() === 'bestseller') || bestseller, tags, showOutOfStock, 
-      stockLimit, lowStockThreshold, currentStockSold,
+      stockLimit, lowStockThreshold, currentStockSold, prepDelay,
       condiments, hiddenCondiments, optionGroups, pairings,
       inStock: true
     });

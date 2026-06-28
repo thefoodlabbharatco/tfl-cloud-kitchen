@@ -557,7 +557,14 @@ const TFL_DB = {
     });
   },
 
-  getProducts() { return this.ensureParathaOnionFilling(this.getLocal("products", DEFAULT_PRODUCTS)); },
+  getProducts() {
+    let products = this.getLocal("products", DEFAULT_PRODUCTS);
+    products = products.map(p => {
+      if (p.prepDelay === undefined || p.prepDelay === null) p.prepDelay = 20;
+      return p;
+    });
+    return this.ensureParathaOnionFilling(products);
+  },
   saveProducts(products) { this.setLocal("products", this.ensureParathaOnionFilling(products)); },
 
   getSubBrands() { return this.normalizeSubBrandIds(this.getLocal("subbrands", DEFAULT_SUBBRANDS)); },
@@ -912,6 +919,7 @@ const TFL_DB = {
     if (!settings.supabaseEnabled) {
       const products = this.getProducts();
       for (const item of cartItems) {
+        if (item.is_backorder) continue;
         const prodId = item.id || (item.product ? item.product.id : null);
         if (!prodId) continue;
         const p = products.find(prod => prod.id === prodId);
@@ -939,6 +947,7 @@ const TFL_DB = {
       await this.syncFromSupabase();
       const products = this.getProducts();
       for (const item of cartItems) {
+        if (item.is_backorder) continue;
         const prodId = item.id || (item.product ? item.product.id : null);
         if (!prodId) continue;
         const p = products.find(prod => prod.id === prodId);
@@ -965,6 +974,7 @@ const TFL_DB = {
       console.error("verifyStockAndIncrement error:", e);
       const products = this.getProducts();
       for (const item of cartItems) {
+        if (item.is_backorder) continue;
         const prodId = item.id || (item.product ? item.product.id : null);
         if (!prodId) continue;
         const p = products.find(prod => prod.id === prodId);

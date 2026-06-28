@@ -2269,3 +2269,43 @@ body:not(.light-theme) .product-price {
     box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.2);
   }
 }
+
+.add-btn-preorder {
+  background-color: transparent !important;
+  border-color: #f59e0b !important;
+  color: #f59e0b !important;
+  font-weight: 700;
+  width: 100%;
+  font-size: 0.68rem;
+  padding: 6px 4px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.2);
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.add-btn-preorder:hover {
+  background-color: rgba(245, 158, 11, 0.1) !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+  transform: scale(1.02);
+}
+
+.cart-preorder-badge {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  text-transform: uppercase;
+  display: inline-block;
+  margin-top: 3px;
+}

@@ -762,9 +762,15 @@ with check (bucket_id = 'product-images');</pre>
             <input type="number" id="p-stock-sold" class="form-control" min="0" value="0">
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label" for="p-tags">Product Tags (comma-separated)</label>
-          <input type="text" id="p-tags" class="form-control" placeholder="e.g. Bestseller, Chef's Special, Trending">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="p-prep-delay">Pre-Order Prep Delay (mins)</label>
+            <input type="number" id="p-prep-delay" class="form-control" min="0" value="20" placeholder="e.g. 20">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="p-tags">Product Tags (comma-separated)</label>
+            <input type="text" id="p-tags" class="form-control" placeholder="e.g. Bestseller, Chef's Special, Trending">
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group">
