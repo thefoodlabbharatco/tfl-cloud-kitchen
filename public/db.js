@@ -29,7 +29,11 @@ const DEFAULT_SETTINGS = {
   supabaseUrl: TFL_RUNTIME_CONFIG.supabaseUrl || "https://rtlnhteibmtudqchlzbv.supabase.co",
   supabaseKey: TFL_RUNTIME_CONFIG.supabaseKey || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0bG5odGVpYm10dWRxY2hsemJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1ODA1MzksImV4cCI6MjA5NTE1NjUzOX0.T7ECe1xGhpV9jkKwulZrrlQsVDnXGuU-hgCloIVlLs4",
   orderRetentionDays: 2,
-  maxCompletedOrders: 100
+  maxCompletedOrders: 100,
+  discountPercent: 5,
+  isSchedulingEnabled: true,
+  peakHourStart: "19:30",
+  peakHourEnd: "21:00"
 };
 
 const DEFAULT_SUBBRANDS = [

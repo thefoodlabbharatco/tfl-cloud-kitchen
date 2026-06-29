@@ -265,6 +265,26 @@
           <textarea id="cust-note" class="form-control" placeholder="Any delivery instruction or food preference" rows="2" autocomplete="new-password"></textarea>
         </div>
         
+        <!-- Schedule & Save Section -->
+        <div id="scheduling-section" class="form-group" style="display: none;">
+          <label class="form-label" style="font-weight: 600; display: block; margin-bottom: 6px;">Delivery Option</label>
+          <div style="display: flex; gap: 20px; margin-top: 4px; margin-bottom: 10px;">
+            <label class="radio-label" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="radio" name="delivery-option" value="now" checked class="checkbox-custom" style="border-radius: 50%;" onchange="toggleSchedulingSelect(false)">
+              Deliver Now
+            </label>
+            <label class="radio-label" style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+              <input type="radio" name="delivery-option" value="later" class="checkbox-custom" style="border-radius: 50%;" onchange="toggleSchedulingSelect(true)">
+              Schedule & Save
+            </label>
+          </div>
+          <div id="scheduling-select-container" style="display: none; background: rgba(255, 255, 255, 0.05); padding: var(--space-md); border-radius: var(--radius-sm); border: 1px solid var(--color-border); margin-bottom: 12px;">
+            <label class="form-label" for="delivery-time-slot" style="font-size: 0.8rem;">Select Time Slot</label>
+            <select id="delivery-time-slot" class="form-control" onchange="handleTimeSlotChange()" style="font-size: 0.82rem; height: 38px; border-radius: var(--radius-sm);"></select>
+            <small style="color: var(--color-success); font-size: 0.72rem; margin-top: 6px; display: block; font-weight: 600;" id="scheduling-discount-info"></small>
+          </div>
+        </div>
+
         <div class="form-group">
           <label class="form-label">Payment Method *</label>
           <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">

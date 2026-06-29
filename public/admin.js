@@ -723,7 +723,11 @@ function renderOrdersTable() {
       </td>
       <td data-label="Date / Time" style="font-size: 0.8rem; line-height: 1.3;">
         <div>${order.orderDate.split(', ')[0]}</div>
-        <div style="color: var(--color-text-muted);">${order.orderDate.split(', ')[1] || ''}</div>
+        <div style="color: var(--color-text-muted); margin-bottom: 4px;">${order.orderDate.split(', ')[1] || ''}</div>
+        ${order.deliveryOption === 'later'
+          ? `<div style="font-size: 0.68rem; padding: 2px 6px; background: rgba(22, 163, 74, 0.15) !important; color: #16a34a !important; border: 1px solid rgba(22, 163, 74, 0.3) !important; border-radius: 4px; font-weight: bold; text-align: center; display: inline-block; width: max-content; text-transform: uppercase; letter-spacing: 0.02em;">⏰ Slot: ${order.scheduledTimeSlot}</div>`
+          : `<div style="font-size: 0.68rem; padding: 2px 6px; background: rgba(255, 255, 255, 0.05) !important; color: var(--color-text-muted) !important; border: 1px solid var(--color-border) !important; border-radius: 4px; font-weight: bold; text-align: center; display: inline-block; width: max-content; text-transform: uppercase; letter-spacing: 0.02em;">Deliver Now</div>`
+        }
       </td>
       <td data-label="Customer Info" style="font-size: 0.82rem; line-height: 1.4; max-width: 150px;">
         <strong>${order.customerName} ${order.customerGender ? `(${order.customerGender})` : ''}</strong><br>
@@ -1034,6 +1038,11 @@ function resendOrderDetailsWhatsApp(orderId) {
     message += `Late Night Fee: Rs ${order.lateNightFee}\n`;
   }
   message += `Grand Total: Rs ${order.grandTotal}\n`;
+  if (order.deliveryOption === 'later') {
+    message += `Delivery option: Scheduled for ${order.scheduledTimeSlot} (Schedule & Save)\n`;
+  } else {
+    message += `Delivery option: Deliver Now\n`;
+  }
   message += `--------------------------------------\n\n`;
   message += `Thank you for choosing The Food Lab!`;
   
@@ -2234,6 +2243,11 @@ function renderSettingsForm() {
   document.getElementById("settings-order-retention").value = settings.orderRetentionDays || 2;
   document.getElementById("settings-max-completed-orders").value = settings.maxCompletedOrders || 100;
   
+  document.getElementById("settings-scheduling-toggle").checked = settings.isSchedulingEnabled || false;
+  document.getElementById("settings-discount-percent").value = settings.discountPercent !== undefined ? settings.discountPercent : 5;
+  document.getElementById("settings-peak-start").value = settings.peakHourStart || "19:30";
+  document.getElementById("settings-peak-end").value = settings.peakHourEnd || "21:00";
+  
   document.getElementById("settings-wa-orders").value = settings.whatsappNumber;
   document.getElementById("settings-wa-support").value = settings.supportNumber;
   
@@ -2266,6 +2280,11 @@ async function saveSettings(event) {
   settings.closedMessage = document.getElementById("settings-closed-msg").value.trim();
   settings.orderRetentionDays = parseInt(document.getElementById("settings-order-retention").value, 10) || 2;
   settings.maxCompletedOrders = parseInt(document.getElementById("settings-max-completed-orders").value, 10) || 100;
+  
+  settings.isSchedulingEnabled = document.getElementById("settings-scheduling-toggle").checked;
+  settings.discountPercent = parseFloat(document.getElementById("settings-discount-percent").value) || 0;
+  settings.peakHourStart = document.getElementById("settings-peak-start").value;
+  settings.peakHourEnd = document.getElementById("settings-peak-end").value;
   
   settings.whatsappNumber = document.getElementById("settings-wa-orders").value.trim();
   settings.supportNumber = document.getElementById("settings-wa-support").value.trim();

@@ -1237,7 +1237,25 @@ function updateCartDisplay() {
   if (appliedPromoCode) {
     discountAmount = Math.round(cartSubtotal * (appliedPromoCode.discountPercent / 100));
   }
-  const grandTotal = cartSubtotal - discountAmount + delivery + lateNight;
+  
+  let dynamicDiscount = 0;
+  const isScheduledLater = document.querySelector('input[name="delivery-option"]:checked')?.value === 'later';
+  const selectedSlotEl = document.getElementById("delivery-time-slot");
+  const isOffPeakSlot = isScheduledLater && selectedSlotEl && selectedSlotEl.options[selectedSlotEl.selectedIndex]?.dataset.isPeak === "false";
+  
+  if (isOffPeakSlot && settings.discountPercent > 0) {
+    dynamicDiscount += cartSubtotal * (settings.discountPercent / 100);
+  }
+  
+  cart.forEach(item => {
+    if (item.is_backorder && settings.discountPercent > 0) {
+      dynamicDiscount += item.subtotal * (settings.discountPercent / 100);
+    }
+  });
+  
+  dynamicDiscount = Math.round(dynamicDiscount);
+  const totalDiscount = discountAmount + dynamicDiscount;
+  const grandTotal = Math.max(0, cartSubtotal - totalDiscount + delivery + lateNight);
   
   if (totalItems > 0) {
     stickyPanel.style.display = "flex";
@@ -1294,10 +1312,16 @@ function updateCartDisplay() {
   const cartDiscountPercent = document.getElementById("cart-discount-percent");
   const cartDiscountAmount = document.getElementById("cart-discount-amount");
   if (cartDiscountRow && cartDiscountPercent && cartDiscountAmount) {
-    if (discountAmount > 0) {
+    if (totalDiscount > 0) {
       cartDiscountRow.style.display = "flex";
-      cartDiscountPercent.innerText = appliedPromoCode.discountPercent;
-      cartDiscountAmount.innerText = `-₹${discountAmount.toFixed(2)}`;
+      let discountLabels = [];
+      if (appliedPromoCode) discountLabels.push(`${appliedPromoCode.code} (${appliedPromoCode.discountPercent}%)`);
+      if (isOffPeakSlot) discountLabels.push(`Off-Peak (${settings.discountPercent}%)`);
+      const hasBackorder = cart.some(i => i.is_backorder);
+      if (hasBackorder) discountLabels.push(`Pre-Order (${settings.discountPercent}%)`);
+      
+      cartDiscountPercent.innerText = discountLabels.join(" + ") || "Discount";
+      cartDiscountAmount.innerText = `-₹${totalDiscount.toFixed(2)}`;
     } else {
       cartDiscountRow.style.display = "none";
     }
@@ -1332,10 +1356,16 @@ function updateCartDisplay() {
     }
   }
   if (checkoutDiscountRow && checkoutDiscountPercent && checkoutDiscountAmount) {
-    if (discountAmount > 0) {
+    if (totalDiscount > 0) {
       checkoutDiscountRow.style.display = "flex";
-      checkoutDiscountPercent.innerText = appliedPromoCode.discountPercent;
-      checkoutDiscountAmount.innerText = `-₹${discountAmount.toFixed(2)}`;
+      let discountLabels = [];
+      if (appliedPromoCode) discountLabels.push(`${appliedPromoCode.code} (${appliedPromoCode.discountPercent}%)`);
+      if (isOffPeakSlot) discountLabels.push(`Off-Peak (${settings.discountPercent}%)`);
+      const hasBackorder = cart.some(i => i.is_backorder);
+      if (hasBackorder) discountLabels.push(`Pre-Order (${settings.discountPercent}%)`);
+      
+      checkoutDiscountPercent.innerText = discountLabels.join(" + ") || "Discount";
+      checkoutDiscountAmount.innerText = `-₹${totalDiscount.toFixed(2)}`;
     } else {
       checkoutDiscountRow.style.display = "none";
     }
@@ -1487,6 +1517,18 @@ function openCheckoutPanel() {
   toggleCartPanel(false);
   toggleCheckoutPanel(true);
   syncPromoCodeInputs();
+  
+  const settings = TFL_DB.getSettings();
+  const schedSection = document.getElementById("scheduling-section");
+  if (schedSection) {
+    if (settings.isSchedulingEnabled) {
+      schedSection.style.display = "block";
+      populateTimeSlots(settings);
+    } else {
+      schedSection.style.display = "none";
+    }
+  }
+  
   updateCartDisplay();
 }
 
@@ -1499,6 +1541,11 @@ function resetCheckoutForm() {
   const codOption = document.querySelector('input[name="payment-mode"][value="COD"]');
   if (codOption) codOption.checked = true;
   toggleUpiSection(false);
+  
+  const deliverNow = document.querySelector('input[name="delivery-option"][value="now"]');
+  if (deliverNow) deliverNow.checked = true;
+  const schedSelect = document.getElementById("scheduling-select-container");
+  if (schedSelect) schedSelect.style.display = "none";
   
   const checkoutBtn = document.getElementById("btn-submit-checkout");
   if (checkoutBtn) {
@@ -1679,7 +1726,27 @@ async function submitOrder(event) {
     promoDiscountPercent = appliedPromoCode.discountPercent;
     discountAmount = Math.round(cartSubtotal * (promoDiscountPercent / 100));
   }
-  const grandTotal = cartSubtotal - discountAmount + delivery + lateNight;
+  
+  let dynamicDiscount = 0;
+  const deliveryOption = document.querySelector('input[name="delivery-option"]:checked')?.value || 'now';
+  const scheduledTimeSlot = deliveryOption === 'later' ? document.getElementById("delivery-time-slot")?.value || '' : '';
+  
+  const selectedSlotEl = document.getElementById("delivery-time-slot");
+  const isOffPeakSlot = deliveryOption === 'later' && selectedSlotEl && selectedSlotEl.options[selectedSlotEl.selectedIndex]?.dataset.isPeak === "false";
+  
+  if (isOffPeakSlot && settings.discountPercent > 0) {
+    dynamicDiscount += cartSubtotal * (settings.discountPercent / 100);
+  }
+  
+  cart.forEach(item => {
+    if (item.is_backorder && settings.discountPercent > 0) {
+      dynamicDiscount += item.subtotal * (settings.discountPercent / 100);
+    }
+  });
+  
+  dynamicDiscount = Math.round(dynamicDiscount);
+  const totalDiscount = discountAmount + dynamicDiscount;
+  const grandTotal = Math.max(0, cartSubtotal - totalDiscount + delivery + lateNight);
   
   // Formulate items summary object array
   const orderedItems = cart.map(item => ({
@@ -1689,7 +1756,9 @@ async function submitOrder(event) {
     subBrand: item.product.category,
     quantity: item.quantity,
     price: item.subtotal / item.quantity,
-    condiments: item.condiments
+    condiments: item.condiments,
+    is_backorder: item.is_backorder || false,
+    prep_delay_minutes: item.prep_delay_minutes || null
   }));
 
   const orderObj = {
@@ -1709,8 +1778,10 @@ async function submitOrder(event) {
     lateNightFee: lateNight,
     promoCode: promoCodeName,
     discountPercent: promoDiscountPercent,
-    discountAmount: discountAmount,
+    discountAmount: totalDiscount,
     grandTotal: grandTotal,
+    deliveryOption: deliveryOption,
+    scheduledTimeSlot: scheduledTimeSlot,
     status: "Pending", // Status defaults to Pending
     orderDate: new Date().toLocaleString(),
     createdAt: new Date().toISOString(),
@@ -2052,6 +2123,11 @@ function sendOrderWhatsApp(options = {}) {
   message += `CUSTOMER DETAILS:\n`;
   message += `Name: ${currentReceiptOrder.customerName}\n`;
   message += `WhatsApp: ${currentReceiptOrder.customerPhone}\n`;
+  if (currentReceiptOrder.deliveryOption === 'later') {
+    message += `Delivery option: Scheduled for ${currentReceiptOrder.scheduledTimeSlot} (Schedule & Save)\n`;
+  } else {
+    message += `Delivery option: Deliver Now\n`;
+  }
   message += `Address: ${currentReceiptOrder.customerAddress}\n`;
   if (currentReceiptOrder.customerNote) {
     message += `Note: ${currentReceiptOrder.customerNote}\n`;
@@ -2105,9 +2181,93 @@ function printReceipt() {
 
 // Download receipt PDF
 function downloadReceiptPDF() {
-  // We can open the print dialogue. Because we styled `@media print` perfectly,
-  // the user can select "Save as PDF" directly which generates a flawless, vector PDF invoice.
-  // Alternatively, we show a native alert explaining how to save it.
   TFL_DB.showToast("In the print menu that opens next, select 'Save as PDF' to save your official receipt.", "info");
   window.print();
 }
+
+// --- ORDER SCHEDULING CONTROLLERS ---
+function toggleSchedulingSelect(show) {
+  const container = document.getElementById("scheduling-select-container");
+  if (container) {
+    container.style.display = show ? "block" : "none";
+  }
+  updateCartDisplay();
+}
+
+function handleTimeSlotChange() {
+  const select = document.getElementById("delivery-time-slot");
+  const info = document.getElementById("scheduling-discount-info");
+  if (select && info) {
+    const selectedOption = select.options[select.selectedIndex];
+    const isPeak = selectedOption?.dataset.isPeak === "true";
+    const settings = TFL_DB.getSettings();
+    if (!isPeak && settings.discountPercent > 0) {
+      info.innerText = `🎉 Off-Peak Slot Selected! Save ${settings.discountPercent}% on this order!`;
+    } else {
+      info.innerText = isPeak ? "Peak Hour Slot selected (Normal Pricing applies)" : "";
+    }
+  }
+  updateCartDisplay();
+}
+
+function populateTimeSlots(settings) {
+  const select = document.getElementById("delivery-time-slot");
+  const info = document.getElementById("scheduling-discount-info");
+  if (!select) return;
+  select.innerHTML = "";
+  if (info) info.innerText = "";
+
+  const now = new Date();
+  let startMinutes = now.getHours() * 60 + now.getMinutes() + 45; // Start slots from now + 45 minutes
+  startMinutes = Math.ceil(startMinutes / 30) * 30; // Round to nearest 30-minute interval
+
+  const endMinutes = 22 * 60; // Slots end at 10:00 PM (22:00)
+  
+  if (startMinutes >= endMinutes) {
+    select.innerHTML = `<option value="" disabled selected>No delivery slots left for today</option>`;
+    return;
+  }
+
+  // Parse peak hours
+  const parseTime = (timeStr) => {
+    if (!timeStr) return 0;
+    const [h, m] = timeStr.split(":").map(Number);
+    return h * 60 + m;
+  };
+  const peakStart = parseTime(settings.peakHourStart || "19:30");
+  const peakEnd = parseTime(settings.peakHourEnd || "21:00");
+
+  let optionsAdded = 0;
+  for (let m = startMinutes; m <= endMinutes; m += 30) {
+    const hh = String(Math.floor(m / 60)).padStart(2, '0');
+    const mm = String(m % 60).padStart(2, '0');
+    const slotTimeStr = `${hh}:${mm}`;
+    
+    // Check if slot falls in peak hour window
+    const isPeak = m >= peakStart && m <= peakEnd;
+    const discountNote = !isPeak && settings.discountPercent > 0 
+      ? ` (Save ${settings.discountPercent}%)` 
+      : "";
+    
+    const option = document.createElement("option");
+    option.value = slotTimeStr;
+    option.dataset.isPeak = isPeak;
+    option.innerText = `${slotTimeStr}${discountNote}`;
+    select.appendChild(option);
+    optionsAdded++;
+  }
+
+  if (optionsAdded === 0) {
+    select.innerHTML = `<option value="" disabled selected>No delivery slots left for today</option>`;
+  } else {
+    // Fire event once populated
+    handleTimeSlotChange();
+  }
+}
+
+// Expose functions to window
+window.toggleSchedulingSelect = toggleSchedulingSelect;
+window.handleTimeSlotChange = handleTimeSlotChange;
+window.populateTimeSlots = populateTimeSlots;
+window.printReceipt = printReceipt;
+window.downloadReceiptPDF = downloadReceiptPDF;
