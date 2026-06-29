@@ -1708,11 +1708,37 @@ async function submitOrder(event) {
   
   const name = document.getElementById("cust-name").value.trim();
   const gender = document.getElementById("cust-gender").value;
-  const phone = document.getElementById("cust-phone").value.trim();
+  let phone = document.getElementById("cust-phone").value.trim();
   const address = document.getElementById("cust-address").value.trim();
   const email = document.getElementById("cust-email").value.trim();
   const note = document.getElementById("cust-note").value.trim();
   const paymentMode = document.querySelector('input[name="payment-mode"]:checked').value;
+  
+  // Phone number sanitization and validation
+  // 1. Remove leading country code if they enter +91 or 91 with 12 digits
+  if (phone.startsWith("+91")) {
+    phone = phone.substring(3);
+  } else if (phone.startsWith("91") && phone.length === 12) {
+    phone = phone.substring(2);
+  }
+  
+  // 2. Strip leading zero if present
+  if (phone.startsWith("0")) {
+    phone = phone.substring(1);
+  }
+  
+  // 3. Clean non-numeric characters
+  phone = phone.replace(/\D/g, "");
+  
+  // 4. Update the input field value on screen so they see the cleaned number
+  document.getElementById("cust-phone").value = phone;
+  
+  // 5. Check pattern: must be exactly 10 digits starting with 6-9
+  const phonePattern = /^[6-9]\d{9}$/;
+  if (!phonePattern.test(phone)) {
+    TFL_DB.showToast("Enter a valid 10-digit mobile number", "error");
+    return;
+  }
   
   // Live stock validation check
   const checkoutBtn = document.getElementById("btn-submit-checkout");
