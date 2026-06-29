@@ -1889,6 +1889,9 @@ function openReceiptModal(order) {
   });
 
   const settings = TFL_DB.getSettings();
+  const deliveryTypeLabel = order.items.some(item => item.is_backorder)
+    ? "Waiting (Pre-Order)"
+    : (order.deliveryOption === 'later' ? `Scheduled (${order.scheduledTimeSlot})` : "Deliver Now");
   
   container.innerHTML = `
     <div class="receipt-header">
@@ -1897,6 +1900,7 @@ function openReceiptModal(order) {
       <div class="receipt-meta">
         <div><strong>Order ID:</strong> ${order.id}</div>
         <div><strong>Date:</strong> ${order.orderDate}</div>
+        <div><strong>Type:</strong> ${deliveryTypeLabel}</div>
       </div>
     </div>
     
