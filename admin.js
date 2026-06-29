@@ -731,7 +731,7 @@ function renderOrdersTable() {
         ${order.items.some(item => item.is_backorder)
           ? `<div style="font-size: 0.68rem; padding: 2px 6px; background: rgba(245, 158, 11, 0.15) !important; color: #f59e0b !important; border: 1px solid rgba(245, 158, 11, 0.3) !important; border-radius: 4px; font-weight: bold; text-align: center; display: inline-block; width: max-content; text-transform: uppercase; letter-spacing: 0.02em;">Waiting</div>`
           : (order.deliveryOption === 'later'
-            ? `<div style="font-size: 0.68rem; padding: 2px 6px; background: rgba(22, 163, 74, 0.15) !important; color: #16a34a !important; border: 1px solid rgba(22, 163, 74, 0.3) !important; border-radius: 4px; font-weight: bold; text-align: center; display: inline-block; width: max-content; text-transform: uppercase; letter-spacing: 0.02em;">Scheduled</div>`
+            ? `<div style="font-size: 0.68rem; padding: 2px 6px; background: rgba(22, 163, 74, 0.15) !important; color: #16a34a !important; border: 1px solid rgba(22, 163, 74, 0.3) !important; border-radius: 4px; font-weight: bold; text-align: center; display: inline-block; width: max-content; text-transform: uppercase; letter-spacing: 0.02em;">Scheduled: ${order.scheduledTimeSlot}</div>`
             : `<div style="font-size: 0.68rem; padding: 2px 6px; background: rgba(255, 255, 255, 0.05) !important; color: var(--color-text-muted) !important; border: 1px solid var(--color-border) !important; border-radius: 4px; font-weight: bold; text-align: center; display: inline-block; width: max-content; text-transform: uppercase; letter-spacing: 0.02em;">Deliver Now</div>`
           )
         }
