@@ -2331,8 +2331,6 @@ function renderSettingsForm() {
     qrStatus.innerText = "";
   }
   
-  document.getElementById("settings-sheet-toggle").checked = settings.googleSheetEnabled;
-  document.getElementById("settings-sheet-url").value = settings.googleSheetUrl || "";
   document.getElementById("settings-supabase-toggle").checked = settings.supabaseEnabled || false;
   document.getElementById("settings-supabase-url").value = settings.supabaseUrl || "";
   document.getElementById("settings-supabase-key").value = settings.supabaseKey || "";
@@ -2365,8 +2363,6 @@ async function saveSettings(event) {
   settings.upiId = document.getElementById("settings-upi-id").value.trim();
   settings.qrImageUrl = document.getElementById("settings-upi-qr").value.trim();
   
-  settings.googleSheetEnabled = document.getElementById("settings-sheet-toggle").checked;
-  settings.googleSheetUrl = document.getElementById("settings-sheet-url").value.trim();
   settings.supabaseEnabled = document.getElementById("settings-supabase-toggle").checked;
   settings.supabaseUrl = document.getElementById("settings-supabase-url").value.trim();
   settings.supabaseKey = document.getElementById("settings-supabase-key").value.trim();
