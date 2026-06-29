@@ -1231,14 +1231,14 @@ function updateCartDisplay() {
   
   const settings = TFL_DB.getSettings();
   
-  // Handle Early Booking Promo Banners
-  const isEarlyBookingActiveNow = settings.earlyBookingEnabled && isCurrentTimeInWindow(settings.earlyBookingStart, settings.earlyBookingEnd);
+  // Handle Booking Window Promo Banners
+  const isBookingWindowActiveNow = isCurrentTimeInWindow(settings.bookingWindowStart, settings.bookingWindowEnd);
   const cartBanner = document.getElementById("cart-promo-banner");
   const checkoutBanner = document.getElementById("checkout-promo-banner");
-  const promoText = `🎉 <strong>Early Bird Special:</strong> Book your order now (between ${settings.earlyBookingStart} - ${settings.earlyBookingEnd}) for delivery after ${settings.earlyBookingDeliveryMinTime} and save <strong>${settings.earlyBookingDiscountPercent}%</strong>!`;
+  const promoText = `🎉 <strong>Booking Window Promo:</strong> Order now (between ${settings.bookingWindowStart} - ${settings.bookingWindowEnd}) and schedule delivery (between ${settings.schedulingAllowedStart} - ${settings.schedulingAllowedEnd}) to save <strong>${settings.discountPercent}%</strong>!`;
   
   if (cartBanner) {
-    if (isEarlyBookingActiveNow) {
+    if (isBookingWindowActiveNow && settings.isSchedulingEnabled) {
       cartBanner.innerHTML = promoText;
       cartBanner.style.display = "flex";
     } else {
@@ -1246,7 +1246,7 @@ function updateCartDisplay() {
     }
   }
   if (checkoutBanner) {
-    if (isEarlyBookingActiveNow) {
+    if (isBookingWindowActiveNow && settings.isSchedulingEnabled) {
       checkoutBanner.innerHTML = promoText;
       checkoutBanner.style.display = "flex";
     } else {
@@ -1265,12 +1265,9 @@ function updateCartDisplay() {
   const isScheduledLater = document.querySelector('input[name="delivery-option"]:checked')?.value === 'later';
   const selectedSlotEl = document.getElementById("delivery-time-slot");
   const selectedSlotOption = selectedSlotEl ? selectedSlotEl.options[selectedSlotEl.selectedIndex] : null;
-  const isOffPeakSlot = isScheduledLater && selectedSlotOption && selectedSlotOption.dataset.isPeak === "false";
-  const isEarlyBirdSlot = isScheduledLater && selectedSlotOption && selectedSlotOption.dataset.isEarlyBird === "true";
+  const isBookingDiscountSlot = isScheduledLater && selectedSlotOption && selectedSlotOption.dataset.hasDiscount === "true";
   
-  if (isEarlyBirdSlot && settings.earlyBookingDiscountPercent > 0) {
-    dynamicDiscount += cartSubtotal * (settings.earlyBookingDiscountPercent / 100);
-  } else if (isOffPeakSlot && settings.discountPercent > 0) {
+  if (isBookingDiscountSlot && settings.discountPercent > 0) {
     dynamicDiscount += cartSubtotal * (settings.discountPercent / 100);
   }
   
@@ -1343,10 +1340,8 @@ function updateCartDisplay() {
       cartDiscountRow.style.display = "flex";
       let discountLabels = [];
       if (appliedPromoCode) discountLabels.push(`${appliedPromoCode.code} (${appliedPromoCode.discountPercent}%)`);
-      if (isEarlyBirdSlot) {
-        discountLabels.push(`Early-Bird (${settings.earlyBookingDiscountPercent}%)`);
-      } else if (isOffPeakSlot) {
-        discountLabels.push(`Off-Peak (${settings.discountPercent}%)`);
+      if (isBookingDiscountSlot) {
+        discountLabels.push(`Booking Window (${settings.discountPercent}%)`);
       }
       const hasBackorder = cart.some(i => i.is_backorder);
       if (hasBackorder) discountLabels.push(`Pre-Order (${settings.discountPercent}%)`);
@@ -1391,10 +1386,8 @@ function updateCartDisplay() {
       checkoutDiscountRow.style.display = "flex";
       let discountLabels = [];
       if (appliedPromoCode) discountLabels.push(`${appliedPromoCode.code} (${appliedPromoCode.discountPercent}%)`);
-      if (isEarlyBirdSlot) {
-        discountLabels.push(`Early-Bird (${settings.earlyBookingDiscountPercent}%)`);
-      } else if (isOffPeakSlot) {
-        discountLabels.push(`Off-Peak (${settings.discountPercent}%)`);
+      if (isBookingDiscountSlot) {
+        discountLabels.push(`Booking Window (${settings.discountPercent}%)`);
       }
       const hasBackorder = cart.some(i => i.is_backorder);
       if (hasBackorder) discountLabels.push(`Pre-Order (${settings.discountPercent}%)`);
@@ -1768,12 +1761,9 @@ async function submitOrder(event) {
   
   const selectedSlotEl = document.getElementById("delivery-time-slot");
   const selectedSlotOption = selectedSlotEl ? selectedSlotEl.options[selectedSlotEl.selectedIndex] : null;
-  const isOffPeakSlot = deliveryOption === 'later' && selectedSlotOption && selectedSlotOption.dataset.isPeak === "false";
-  const isEarlyBirdSlot = deliveryOption === 'later' && selectedSlotOption && selectedSlotOption.dataset.isEarlyBird === "true";
+  const isBookingDiscountSlot = deliveryOption === 'later' && selectedSlotOption && selectedSlotOption.dataset.hasDiscount === "true";
   
-  if (isEarlyBirdSlot && settings.earlyBookingDiscountPercent > 0) {
-    dynamicDiscount += cartSubtotal * (settings.earlyBookingDiscountPercent / 100);
-  } else if (isOffPeakSlot && settings.discountPercent > 0) {
+  if (isBookingDiscountSlot && settings.discountPercent > 0) {
     dynamicDiscount += cartSubtotal * (settings.discountPercent / 100);
   }
   
@@ -2256,15 +2246,12 @@ function handleTimeSlotChange() {
   const info = document.getElementById("scheduling-discount-info");
   if (select && info) {
     const selectedOption = select.options[select.selectedIndex];
-    const isEarlyBird = selectedOption?.dataset.isEarlyBird === "true";
-    const isPeak = selectedOption?.dataset.isPeak === "true";
+    const hasDiscount = selectedOption?.dataset.hasDiscount === "true";
     const settings = TFL_DB.getSettings();
-    if (isEarlyBird && settings.earlyBookingDiscountPercent > 0) {
-      info.innerText = `🎉 Early Booking Promo Applied! Save ${settings.earlyBookingDiscountPercent}% on this order!`;
-    } else if (!isPeak && settings.discountPercent > 0) {
-      info.innerText = `🎉 Off-Peak Slot Selected! Save ${settings.discountPercent}% on this order!`;
+    if (hasDiscount && settings.discountPercent > 0) {
+      info.innerText = `🎉 Booking Window Discount Applied! Save ${settings.discountPercent}% on this order!`;
     } else {
-      info.innerText = isPeak ? "Peak Hour Slot selected (Normal Pricing applies)" : "";
+      info.innerText = "";
     }
   }
   updateCartDisplay();
@@ -2284,7 +2271,7 @@ function populateTimeSlots(settings) {
   };
 
   const slotStartMin = parseTime(settings.schedulingAllowedStart || "18:00");
-  const slotEndMin = parseTime(settings.schedulingAllowedEnd || "22:00");
+  const slotEndMin = parseTime(settings.schedulingAllowedEnd || "23:30");
 
   const now = new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
@@ -2294,11 +2281,7 @@ function populateTimeSlots(settings) {
     startMinutes = Math.max(slotStartMin, Math.ceil((currentMinutes + 45) / 30) * 30);
   }
 
-  const peakStart = parseTime(settings.peakHourStart || "19:30");
-  const peakEnd = parseTime(settings.peakHourEnd || "21:00");
-  
-  const isEarlyBookingActive = settings.earlyBookingEnabled && isCurrentTimeInWindow(settings.earlyBookingStart, settings.earlyBookingEnd);
-  const earlyBookingMinMin = parseTime(settings.earlyBookingDeliveryMinTime || "20:00");
+  const isBookingWindowOpen = isCurrentTimeInWindow(settings.bookingWindowStart, settings.bookingWindowEnd);
 
   let optionsAdded = 0;
   for (let m = startMinutes; m + 30 <= slotEndMin; m += 30) {
@@ -2312,20 +2295,14 @@ function populateTimeSlots(settings) {
 
     const slotValue = `${startStr} - ${endStr}`;
     
-    const isEarlyBird = isEarlyBookingActive && m >= earlyBookingMinMin;
-    const isPeak = m >= peakStart && m <= peakEnd;
-    
-    let discountNote = "";
-    if (isEarlyBird) {
-      discountNote = ` (Early Booking Save ${settings.earlyBookingDiscountPercent}%)`;
-    } else if (!isPeak && settings.discountPercent > 0) {
-      discountNote = ` (Save ${settings.discountPercent}%)`;
-    }
+    const hasDiscount = isBookingWindowOpen;
+    const discountNote = hasDiscount && settings.discountPercent > 0 
+      ? ` (Save ${settings.discountPercent}%)` 
+      : "";
     
     const option = document.createElement("option");
     option.value = slotValue;
-    option.dataset.isPeak = isPeak;
-    option.dataset.isEarlyBird = isEarlyBird;
+    option.dataset.hasDiscount = hasDiscount;
     option.innerText = `${slotValue}${discountNote}`;
     select.appendChild(option);
     optionsAdded++;

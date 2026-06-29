@@ -32,15 +32,10 @@ const DEFAULT_SETTINGS = {
   maxCompletedOrders: 100,
   discountPercent: 5,
   isSchedulingEnabled: true,
-  peakHourStart: "19:30",
-  peakHourEnd: "21:00",
+  bookingWindowStart: "09:00",
+  bookingWindowEnd: "11:00",
   schedulingAllowedStart: "18:00",
-  schedulingAllowedEnd: "22:00",
-  earlyBookingEnabled: true,
-  earlyBookingDiscountPercent: 10,
-  earlyBookingStart: "09:00",
-  earlyBookingEnd: "11:00",
-  earlyBookingDeliveryMinTime: "20:00"
+  schedulingAllowedEnd: "23:30"
 };
 
 const DEFAULT_SUBBRANDS = [
