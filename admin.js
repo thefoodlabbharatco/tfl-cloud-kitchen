@@ -601,12 +601,48 @@ function renderOrdersTable() {
   if (!container) return;
   container.innerHTML = "";
   
-  // Calculate and update KPI tiles on the orders tab
-  const totalCount = allOrders.length;
-  const unpaidCount = allOrders.filter(o => o.paymentStatus === "Unpaid" && o.status !== "Cancelled").length;
-  const pendingCount = allOrders.filter(o => o.status === "Pending").length;
-  const preparingCount = allOrders.filter(o => o.status === "Preparing").length;
-  const scheduledCount = allOrders.filter(o => o.deliveryOption === "later" && o.status !== "Cancelled").length;
+  // Retrieve period and filter values from select controls
+  const periodSelect = document.getElementById("filter-order-period");
+  const filterPeriod = periodSelect ? periodSelect.value : "today";
+  const datePicker = document.getElementById("order-date-picker");
+  const selectedDate = datePicker ? datePicker.value : "";
+
+  // Helper date matching calculations
+  const now = new Date();
+  const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  
+  const tempDate = new Date();
+  const firstDay = tempDate.getDate() - tempDate.getDay();
+  const startOfWeek = new Date(tempDate.setDate(firstDay));
+  startOfWeek.setHours(0,0,0,0);
+  const endOfWeek = new Date(startOfWeek.getTime() + 7 * 24 * 60 * 60 * 1000 - 1);
+
+  // Filter orders by date period first
+  let periodOrders = allOrders.filter(o => {
+    const orderTime = TFL_DB.getOrderTime(o);
+    if (!orderTime) return false;
+    const oDate = new Date(orderTime);
+    const oLocalDateStr = oDate.getFullYear() + '-' + String(oDate.getMonth() + 1).padStart(2, '0') + '-' + String(oDate.getDate()).padStart(2, '0');
+
+    if (filterPeriod === "today") {
+      return oLocalDateStr === todayStr;
+    } else if (filterPeriod === "week") {
+      return oDate >= startOfWeek && oDate <= endOfWeek;
+    } else if (filterPeriod === "month") {
+      return oDate.getMonth() === now.getMonth() && oDate.getFullYear() === now.getFullYear();
+    } else if (filterPeriod === "calendar") {
+      if (!selectedDate) return true; // Show all if calendar is selected but no date entered
+      return oLocalDateStr === selectedDate;
+    }
+    return true;
+  });
+
+  // Calculate and update KPI tiles on the orders tab based on periodOrders
+  const totalCount = periodOrders.length;
+  const unpaidCount = periodOrders.filter(o => o.paymentStatus === "Unpaid" && o.status !== "Cancelled").length;
+  const pendingCount = periodOrders.filter(o => o.status === "Pending").length;
+  const preparingCount = periodOrders.filter(o => o.status === "Preparing").length;
+  const scheduledCount = periodOrders.filter(o => o.deliveryOption === "later" && o.status !== "Cancelled").length;
 
   const kpiTotal = document.getElementById("order-kpi-total");
   const kpiUnpaid = document.getElementById("order-kpi-unpaid");
@@ -620,20 +656,18 @@ function renderOrdersTable() {
   if (kpiPreparing) kpiPreparing.innerText = preparingCount;
   if (kpiScheduled) kpiScheduled.innerText = scheduledCount;
 
-  // Retrieve filter values from select controls
+  // Retrieve status and sorting values from controls
   const deliveryStatusSelect = document.getElementById("filter-delivery-status");
   const paymentStatusSelect = document.getElementById("filter-payment-status");
   const deliveryTypeSelect = document.getElementById("filter-delivery-type");
   const sortSelect = document.getElementById("sort-orders-by");
-  const datePicker = document.getElementById("order-date-picker");
 
   const filterDelivery = deliveryStatusSelect ? deliveryStatusSelect.value : "all";
   const filterPayment = paymentStatusSelect ? paymentStatusSelect.value : "all";
   const filterType = deliveryTypeSelect ? deliveryTypeSelect.value : "all";
   const sortBy = sortSelect ? sortSelect.value : "date-desc";
-  const selectedDate = datePicker ? datePicker.value : "";
 
-  let filtered = allOrders;
+  let filtered = periodOrders;
 
   // 1. Delivery Status Filter
   if (filterDelivery !== "all") {
@@ -654,17 +688,6 @@ function renderOrdersTable() {
     } else if (filterType === "waiting") {
       filtered = filtered.filter(o => o.items.some(item => item.is_backorder));
     }
-  }
-
-  // 4. Date Picker Filter
-  if (selectedDate) {
-    filtered = filtered.filter(o => {
-      const orderTime = TFL_DB.getOrderTime(o);
-      if (!orderTime) return false;
-      const oDate = new Date(orderTime);
-      const orderLocalDateStr = oDate.getFullYear() + '-' + String(oDate.getMonth() + 1).padStart(2, '0') + '-' + String(oDate.getDate()).padStart(2, '0');
-      return orderLocalDateStr === selectedDate;
-    });
   }
 
   // 5. Sorting
@@ -3349,11 +3372,21 @@ function clearOrderDatePicker() {
   renderOrdersTable();
 }
 
+function handleOrderPeriodChange() {
+  const period = document.getElementById("filter-order-period").value;
+  const container = document.getElementById("order-date-picker-container");
+  if (container) {
+    container.style.display = period === "calendar" ? "flex" : "none";
+  }
+  renderOrdersTable();
+}
+
 window.openManualOrderModal = openManualOrderModal;
 window.closeManualOrderModal = closeManualOrderModal;
 window.handleManualOrderSubmit = handleManualOrderSubmit;
 window.applyOrderFilters = applyOrderFilters;
 window.clearOrderDatePicker = clearOrderDatePicker;
+window.handleOrderPeriodChange = handleOrderPeriodChange;
 
 function checkLowStockAlerts() {
   if (!loggedInUser) return;

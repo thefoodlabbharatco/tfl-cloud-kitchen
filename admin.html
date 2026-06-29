@@ -278,6 +278,14 @@
         <div style="display: flex; flex-direction: column; gap: var(--space-md); margin-bottom: var(--space-md); background: rgba(255, 255, 255, 0.02); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-md);">
           <div style="display: flex; gap: var(--space-sm); align-items: center; flex-wrap: wrap; justify-content: space-between;">
             <div style="display: flex; gap: var(--space-sm); flex-wrap: wrap; align-items: center;">
+              <!-- Period Dropdown -->
+              <select id="filter-order-period" class="form-control" onchange="handleOrderPeriodChange()" style="width: auto; height: 36px; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; background: var(--color-bg-dark); font-weight: 600; color: var(--color-primary); border: 1px solid rgba(22, 163, 74, 0.3);">
+                <option value="today">Today's Period</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="calendar">Calendar Date</option>
+              </select>
+              
               <!-- Filters -->
               <select id="filter-delivery-status" class="form-control" onchange="applyOrderFilters()" style="width: auto; height: 36px; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; background: var(--color-bg-dark);">
                 <option value="all">All Delivery Statuses</option>
@@ -307,7 +315,7 @@
               </select>
             </div>
             
-            <div style="display: flex; align-items: center; gap: var(--space-xs);">
+            <div id="order-date-picker-container" style="display: none; align-items: center; gap: var(--space-xs);">
               <input type="text" id="order-date-picker" placeholder="Calendar" class="form-control" onfocus="(this.type='date')" onblur="(this.value ? this.type='date' : this.type='text')" onchange="applyOrderFilters()" style="height: 36px; padding: 4px 10px; border-radius: 6px; width: 140px; font-size: 0.8rem; text-align: center; background: var(--color-bg-dark);">
               <button class="btn btn-secondary btn-sm" onclick="clearOrderDatePicker()" style="height: 36px; padding: 0 12px; border-radius: 6px; font-size: 0.75rem;">Clear Date</button>
             </div>
