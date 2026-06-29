@@ -662,6 +662,10 @@ function renderOrdersTable() {
       itemsDetailHtml += `<div>• ${item.name} x ${item.quantity}${condimentText}${preOrderBadgeHtml}</div>`;
     });
     
+    if (order.deliveryOption === 'later' && order.scheduledTimeSlot) {
+      itemsDetailHtml += `<div style="font-size: 0.72rem; color: #16a34a; font-weight: 700; margin-top: 6px; padding: 4px 8px; background: rgba(22, 163, 74, 0.08); border-radius: 6px; border: 1px solid rgba(22, 163, 74, 0.18); display: inline-block; margin-right: 6px;">⏰ Scheduled Delivery: Slot ${order.scheduledTimeSlot}</div>`;
+    }
+    
     if (hasPreOrder) {
       itemsDetailHtml += `<div style="font-size: 0.72rem; color: #d97706; font-weight: 700; margin-top: 6px; padding: 4px 8px; background: rgba(245, 158, 11, 0.08); border-radius: 6px; border: 1px solid rgba(245, 158, 11, 0.18); display: inline-block;">⏰ Pre-Order Order: Staff has +${maxDelay}m extra prep time</div>`;
     }
