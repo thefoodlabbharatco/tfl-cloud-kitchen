@@ -2156,7 +2156,9 @@ function sendOrderWhatsApp(options = {}) {
   message += `CUSTOMER DETAILS:\n`;
   message += `Name: ${currentReceiptOrder.customerName}\n`;
   message += `WhatsApp: ${currentReceiptOrder.customerPhone}\n`;
-  if (currentReceiptOrder.deliveryOption === 'later') {
+  if (currentReceiptOrder.items.some(item => item.is_backorder)) {
+    message += `Delivery option: Waiting (Pre-Order - extra prep time required)\n`;
+  } else if (currentReceiptOrder.deliveryOption === 'later') {
     message += `Delivery option: Scheduled for ${currentReceiptOrder.scheduledTimeSlot} (Schedule & Save)\n`;
   } else {
     message += `Delivery option: Deliver Now\n`;

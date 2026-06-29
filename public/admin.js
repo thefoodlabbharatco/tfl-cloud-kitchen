@@ -1041,7 +1041,9 @@ function resendOrderDetailsWhatsApp(orderId) {
     message += `Late Night Fee: Rs ${order.lateNightFee}\n`;
   }
   message += `Grand Total: Rs ${order.grandTotal}\n`;
-  if (order.deliveryOption === 'later') {
+  if (order.items.some(item => item.is_backorder)) {
+    message += `Delivery option: Waiting (Pre-Order - extra prep time required)\n`;
+  } else if (order.deliveryOption === 'later') {
     message += `Delivery option: Scheduled for ${order.scheduledTimeSlot} (Schedule & Save)\n`;
   } else {
     message += `Delivery option: Deliver Now\n`;
