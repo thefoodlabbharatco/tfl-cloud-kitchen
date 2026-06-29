@@ -2109,26 +2109,20 @@ function getOrderItemSubBrandId(item) {
 
 // Helper for sub-brand greeting
 function getSubBrandGreeting(order) {
-  const itemCategories = (order.items || []).map(item => {
+  const uniqueSubBrands = new Set();
+  (order.items || []).forEach(item => {
     const subBrandId = getOrderItemSubBrandId(item);
-    return subBrandId || null;
-  }).filter(c => c !== null);
-  
-  const counts = {};
-  itemCategories.forEach(c => counts[c] = (counts[c] || 0) + 1);
-  
-  let maxCat = null;
-  let maxCount = 0;
-  for (const cat in counts) {
-    if (counts[cat] > maxCount) {
-      maxCount = counts[cat];
-      maxCat = cat;
+    if (subBrandId) {
+      uniqueSubBrands.add(subBrandId);
     }
-  }
-  
-  const subBrandName = getSubBrandNameById(maxCat);
-  if (subBrandName) {
-    return `Greetings From ${subBrandName}! Thanks for ordering.`;
+  });
+
+  if (uniqueSubBrands.size === 1) {
+    const subBrandId = Array.from(uniqueSubBrands)[0];
+    const subBrandName = getSubBrandNameById(subBrandId);
+    if (subBrandName) {
+      return `Greetings From ${subBrandName}! Thanks for ordering.`;
+    }
   }
   return "Greetings From The Food Lab! Thanks for ordering.";
 }
