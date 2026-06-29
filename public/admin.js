@@ -595,28 +595,68 @@ function renderDashboard() {
 
 // --- TAB: ORDERS MANAGEMENT LOGIC ---
 function renderOrdersTable() {
-  const orders = TFL_DB.getOrders();
+  const allOrders = TFL_DB.getOrders();
   const products = TFL_DB.getProducts();
   const container = document.getElementById("orders-full-list");
+  if (!container) return;
   container.innerHTML = "";
   
-  // Apply visual button updates for active filter
-  const filterButtons = ['all', 'Pending', 'Preparing', 'Delivered', 'Cancelled'];
-  filterButtons.forEach(f => {
-    const btn = document.getElementById(`order-filter-${f.toLowerCase()}`);
-    if (btn) {
-      btn.className = `filter-pill ${currentOrderFilter === f ? 'active' : ''}`;
-    }
-  });
-  
+  // Calculate and update KPI tiles on the orders tab
+  const totalCount = allOrders.length;
+  const unpaidCount = allOrders.filter(o => o.paymentStatus === "Unpaid" && o.status !== "Cancelled").length;
+  const pendingCount = allOrders.filter(o => o.status === "Pending").length;
+  const preparingCount = allOrders.filter(o => o.status === "Preparing").length;
+  const scheduledCount = allOrders.filter(o => o.deliveryOption === "later" && o.status !== "Cancelled").length;
+
+  const kpiTotal = document.getElementById("order-kpi-total");
+  const kpiUnpaid = document.getElementById("order-kpi-unpaid");
+  const kpiPending = document.getElementById("order-kpi-pending");
+  const kpiPreparing = document.getElementById("order-kpi-preparing");
+  const kpiScheduled = document.getElementById("order-kpi-scheduled");
+
+  if (kpiTotal) kpiTotal.innerText = totalCount;
+  if (kpiUnpaid) kpiUnpaid.innerText = unpaidCount;
+  if (kpiPending) kpiPending.innerText = pendingCount;
+  if (kpiPreparing) kpiPreparing.innerText = preparingCount;
+  if (kpiScheduled) kpiScheduled.innerText = scheduledCount;
+
+  // Retrieve filter values from select controls
+  const deliveryStatusSelect = document.getElementById("filter-delivery-status");
+  const paymentStatusSelect = document.getElementById("filter-payment-status");
+  const deliveryTypeSelect = document.getElementById("filter-delivery-type");
+  const sortSelect = document.getElementById("sort-orders-by");
   const datePicker = document.getElementById("order-date-picker");
+
+  const filterDelivery = deliveryStatusSelect ? deliveryStatusSelect.value : "all";
+  const filterPayment = paymentStatusSelect ? paymentStatusSelect.value : "all";
+  const filterType = deliveryTypeSelect ? deliveryTypeSelect.value : "all";
+  const sortBy = sortSelect ? sortSelect.value : "date-desc";
   const selectedDate = datePicker ? datePicker.value : "";
 
-  let filtered = orders;
-  if (currentOrderFilter !== 'all') {
-    filtered = filtered.filter(o => o.status === currentOrderFilter);
+  let filtered = allOrders;
+
+  // 1. Delivery Status Filter
+  if (filterDelivery !== "all") {
+    filtered = filtered.filter(o => o.status === filterDelivery);
   }
-  
+
+  // 2. Payment Status Filter
+  if (filterPayment !== "all") {
+    filtered = filtered.filter(o => o.paymentStatus === filterPayment);
+  }
+
+  // 3. Delivery Type Filter
+  if (filterType !== "all") {
+    if (filterType === "now") {
+      filtered = filtered.filter(o => o.deliveryOption !== "later" && !o.items.some(item => item.is_backorder));
+    } else if (filterType === "later") {
+      filtered = filtered.filter(o => o.deliveryOption === "later" && !o.items.some(item => item.is_backorder));
+    } else if (filterType === "waiting") {
+      filtered = filtered.filter(o => o.items.some(item => item.is_backorder));
+    }
+  }
+
+  // 4. Date Picker Filter
   if (selectedDate) {
     filtered = filtered.filter(o => {
       const orderTime = TFL_DB.getOrderTime(o);
@@ -626,6 +666,23 @@ function renderOrdersTable() {
       return orderLocalDateStr === selectedDate;
     });
   }
+
+  // 5. Sorting
+  filtered.sort((a, b) => {
+    const timeA = new Date(TFL_DB.getOrderTime(a) || a.createdAt || 0).getTime();
+    const timeB = new Date(TFL_DB.getOrderTime(b) || b.createdAt || 0).getTime();
+    
+    if (sortBy === "date-desc") {
+      return timeB - timeA;
+    } else if (sortBy === "date-asc") {
+      return timeA - timeB;
+    } else if (sortBy === "price-desc") {
+      return b.grandTotal - a.grandTotal;
+    } else if (sortBy === "price-asc") {
+      return a.grandTotal - b.grandTotal;
+    }
+    return 0;
+  });
   
   if (filtered.length === 0) {
     const dateLabel = selectedDate ? ` on ${formatCustomDate(selectedDate)}` : '';
@@ -633,7 +690,7 @@ function renderOrdersTable() {
       <tr>
         <td colspan="9" style="text-align: center; color: var(--color-text-muted); padding: var(--space-xl) 0;">
           <i data-lucide="archive" style="width: 48px; height: 48px; stroke-width: 1; margin-bottom: 12px;"></i>
-          <p>No orders cataloged under "${currentOrderFilter}" status${dateLabel}.</p>
+          <p>No orders matched your filters${dateLabel}.</p>
         </td>
       </tr>
     `;
@@ -3283,9 +3340,21 @@ async function handleManualOrderSubmit(event) {
   renderDashboard();
 }
 
+function applyOrderFilters() {
+  renderOrdersTable();
+}
+
+function clearOrderDatePicker() {
+  const picker = document.getElementById("order-date-picker");
+  if (picker) picker.value = "";
+  renderOrdersTable();
+}
+
 window.openManualOrderModal = openManualOrderModal;
 window.closeManualOrderModal = closeManualOrderModal;
 window.handleManualOrderSubmit = handleManualOrderSubmit;
+window.applyOrderFilters = applyOrderFilters;
+window.clearOrderDatePicker = clearOrderDatePicker;
 
 function checkLowStockAlerts() {
   if (!loggedInUser) return;
