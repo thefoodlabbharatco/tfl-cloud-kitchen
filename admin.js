@@ -759,6 +759,7 @@ function renderOrdersTable() {
       <select class="form-control" style="font-size: 0.8rem; padding: 0.3rem 0.5rem; width: 110px;" onchange="updateOrderStatus('${order.id}', this.value)">
         <option value="Pending" ${order.status === 'Pending' ? 'selected' : ''}>Pending</option>
         <option value="Preparing" ${order.status === 'Preparing' ? 'selected' : ''}>Preparing</option>
+        <option value="Out for Delivery" ${order.status === 'Out for Delivery' ? 'selected' : ''}>Out for Delivery</option>
         <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
         <option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
       </select>
@@ -1008,6 +1009,8 @@ function sendWhatsAppStatusUpdate(order, newStatus) {
     statusMsg = "is now PREPARING! Our kitchen laboratory has started formulating your recipes.";
   } else if (newStatus === "Delivered") {
     statusMsg = "has been DELIVERED! Enjoy your lab-tested deliciousness.";
+  } else if (newStatus === "Out for Delivery") {
+    statusMsg = "is now OUT FOR DELIVERY! Our courier is rushing to deliver your warm formulations.";
   } else if (newStatus === "Cancelled") {
     statusMsg = "has been CANCELLED. If you have any questions or want to re-order, please get in touch with us.";
   } else if (newStatus === "Pending") {
