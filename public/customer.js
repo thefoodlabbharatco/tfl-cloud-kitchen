@@ -2277,37 +2277,41 @@ function populateTimeSlots(settings) {
   select.innerHTML = "";
   if (info) info.innerText = "";
 
-  const now = new Date();
-  let startMinutes = now.getHours() * 60 + now.getMinutes() + 45; // Start slots from now + 45 minutes
-  startMinutes = Math.ceil(startMinutes / 30) * 30; // Round to nearest 30-minute interval
-
-  const endMinutes = 22 * 60; // Slots end at 10:00 PM (22:00)
-  
-  if (startMinutes >= endMinutes) {
-    select.innerHTML = `<option value="" disabled selected>No delivery slots left for today</option>`;
-    return;
-  }
-
-  // Parse peak hours
   const parseTime = (timeStr) => {
     if (!timeStr) return 0;
     const [h, m] = timeStr.split(":").map(Number);
     return h * 60 + m;
   };
+
+  const slotStartMin = parseTime(settings.schedulingAllowedStart || "18:00");
+  const slotEndMin = parseTime(settings.schedulingAllowedEnd || "22:00");
+
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  let startMinutes = slotStartMin;
+  if (currentMinutes + 45 > slotStartMin) {
+    startMinutes = Math.max(slotStartMin, Math.ceil((currentMinutes + 45) / 30) * 30);
+  }
+
   const peakStart = parseTime(settings.peakHourStart || "19:30");
   const peakEnd = parseTime(settings.peakHourEnd || "21:00");
   
-  // Check if Early Booking is active right now
   const isEarlyBookingActive = settings.earlyBookingEnabled && isCurrentTimeInWindow(settings.earlyBookingStart, settings.earlyBookingEnd);
   const earlyBookingMinMin = parseTime(settings.earlyBookingDeliveryMinTime || "20:00");
 
   let optionsAdded = 0;
-  for (let m = startMinutes; m <= endMinutes; m += 30) {
-    const hh = String(Math.floor(m / 60)).padStart(2, '0');
-    const mm = String(m % 60).padStart(2, '0');
-    const slotTimeStr = `${hh}:${mm}`;
+  for (let m = startMinutes; m + 30 <= slotEndMin; m += 30) {
+    const hh1 = String(Math.floor(m / 60)).padStart(2, '0');
+    const mm1 = String(m % 60).padStart(2, '0');
+    const startStr = `${hh1}:${mm1}`;
+
+    const hh2 = String(Math.floor((m + 30) / 60)).padStart(2, '0');
+    const mm2 = String((m + 30) % 60).padStart(2, '0');
+    const endStr = `${hh2}:${mm2}`;
+
+    const slotValue = `${startStr} - ${endStr}`;
     
-    // Check if slot falls in early bird window
     const isEarlyBird = isEarlyBookingActive && m >= earlyBookingMinMin;
     const isPeak = m >= peakStart && m <= peakEnd;
     
@@ -2319,10 +2323,10 @@ function populateTimeSlots(settings) {
     }
     
     const option = document.createElement("option");
-    option.value = slotTimeStr;
+    option.value = slotValue;
     option.dataset.isPeak = isPeak;
     option.dataset.isEarlyBird = isEarlyBird;
-    option.innerText = `${slotTimeStr}${discountNote}`;
+    option.innerText = `${slotValue}${discountNote}`;
     select.appendChild(option);
     optionsAdded++;
   }
@@ -2330,7 +2334,6 @@ function populateTimeSlots(settings) {
   if (optionsAdded === 0) {
     select.innerHTML = `<option value="" disabled selected>No delivery slots left for today</option>`;
   } else {
-    // Fire event once populated
     handleTimeSlotChange();
   }
 }

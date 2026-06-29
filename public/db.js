@@ -34,6 +34,8 @@ const DEFAULT_SETTINGS = {
   isSchedulingEnabled: true,
   peakHourStart: "19:30",
   peakHourEnd: "21:00",
+  schedulingAllowedStart: "18:00",
+  schedulingAllowedEnd: "22:00",
   earlyBookingEnabled: true,
   earlyBookingDiscountPercent: 10,
   earlyBookingStart: "09:00",

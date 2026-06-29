@@ -2250,6 +2250,8 @@ function renderSettingsForm() {
   document.getElementById("settings-discount-percent").value = settings.discountPercent !== undefined ? settings.discountPercent : 5;
   document.getElementById("settings-peak-start").value = settings.peakHourStart || "19:30";
   document.getElementById("settings-peak-end").value = settings.peakHourEnd || "21:00";
+  document.getElementById("settings-scheduling-start").value = settings.schedulingAllowedStart || "18:00";
+  document.getElementById("settings-scheduling-end").value = settings.schedulingAllowedEnd || "22:00";
   
   document.getElementById("settings-early-booking-toggle").checked = settings.earlyBookingEnabled || false;
   document.getElementById("settings-early-booking-discount").value = settings.earlyBookingDiscountPercent !== undefined ? settings.earlyBookingDiscountPercent : 10;
@@ -2294,6 +2296,8 @@ async function saveSettings(event) {
   settings.discountPercent = parseFloat(document.getElementById("settings-discount-percent").value) || 0;
   settings.peakHourStart = document.getElementById("settings-peak-start").value;
   settings.peakHourEnd = document.getElementById("settings-peak-end").value;
+  settings.schedulingAllowedStart = document.getElementById("settings-scheduling-start").value;
+  settings.schedulingAllowedEnd = document.getElementById("settings-scheduling-end").value;
   
   settings.earlyBookingEnabled = document.getElementById("settings-early-booking-toggle").checked;
   settings.earlyBookingDiscountPercent = parseFloat(document.getElementById("settings-early-booking-discount").value) || 0;
