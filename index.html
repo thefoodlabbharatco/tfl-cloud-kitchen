@@ -174,8 +174,11 @@
       </h2>
       <button class="slide-over-close" onclick="toggleCartPanel(false)">&times;</button>
     </div>
-    <div class="slide-over-body" id="cart-items-container">
-      <!-- Items generated dynamically by JS -->
+    <div class="slide-over-body" style="display: flex; flex-direction: column; gap: var(--space-sm); overflow-y: hidden;">
+      <div id="cart-promo-banner" style="display: none; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: var(--radius-sm); padding: var(--space-sm) var(--space-md); font-size: 0.78rem; line-height: 1.4; color: #d97706; font-weight: 600; align-items: center; gap: 8px;"></div>
+      <div id="cart-items-container" style="flex-grow: 1; overflow-y: auto;">
+        <!-- Items generated dynamically by JS -->
+      </div>
     </div>
     <div class="slide-over-footer">
       <!-- Promo Code Section -->
@@ -234,6 +237,7 @@
       <button class="slide-over-close" onclick="toggleCheckoutPanel(false)">&times;</button>
     </div>
     <div class="slide-over-body">
+      <div id="checkout-promo-banner" style="display: none; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: var(--radius-sm); padding: var(--space-sm) var(--space-md); font-size: 0.78rem; line-height: 1.4; color: #d97706; font-weight: 600; align-items: center; gap: 8px; margin-bottom: var(--space-md);"></div>
       <form id="checkout-form" onsubmit="submitOrder(event)" autocomplete="off">
         <div class="form-group">
           <label class="form-label" for="cust-name">Name *</label>

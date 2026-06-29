@@ -2248,6 +2248,12 @@ function renderSettingsForm() {
   document.getElementById("settings-peak-start").value = settings.peakHourStart || "19:30";
   document.getElementById("settings-peak-end").value = settings.peakHourEnd || "21:00";
   
+  document.getElementById("settings-early-booking-toggle").checked = settings.earlyBookingEnabled || false;
+  document.getElementById("settings-early-booking-discount").value = settings.earlyBookingDiscountPercent !== undefined ? settings.earlyBookingDiscountPercent : 10;
+  document.getElementById("settings-early-booking-start").value = settings.earlyBookingStart || "09:00";
+  document.getElementById("settings-early-booking-end").value = settings.earlyBookingEnd || "11:00";
+  document.getElementById("settings-early-booking-delivery-min").value = settings.earlyBookingDeliveryMinTime || "20:00";
+  
   document.getElementById("settings-wa-orders").value = settings.whatsappNumber;
   document.getElementById("settings-wa-support").value = settings.supportNumber;
   
@@ -2285,6 +2291,12 @@ async function saveSettings(event) {
   settings.discountPercent = parseFloat(document.getElementById("settings-discount-percent").value) || 0;
   settings.peakHourStart = document.getElementById("settings-peak-start").value;
   settings.peakHourEnd = document.getElementById("settings-peak-end").value;
+  
+  settings.earlyBookingEnabled = document.getElementById("settings-early-booking-toggle").checked;
+  settings.earlyBookingDiscountPercent = parseFloat(document.getElementById("settings-early-booking-discount").value) || 0;
+  settings.earlyBookingStart = document.getElementById("settings-early-booking-start").value;
+  settings.earlyBookingEnd = document.getElementById("settings-early-booking-end").value;
+  settings.earlyBookingDeliveryMinTime = document.getElementById("settings-early-booking-delivery-min").value;
   
   settings.whatsappNumber = document.getElementById("settings-wa-orders").value.trim();
   settings.supportNumber = document.getElementById("settings-wa-support").value.trim();

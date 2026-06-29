@@ -1230,6 +1230,29 @@ function updateCartDisplay() {
   const cartSubtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
   
   const settings = TFL_DB.getSettings();
+  
+  // Handle Early Booking Promo Banners
+  const isEarlyBookingActiveNow = settings.earlyBookingEnabled && isCurrentTimeInWindow(settings.earlyBookingStart, settings.earlyBookingEnd);
+  const cartBanner = document.getElementById("cart-promo-banner");
+  const checkoutBanner = document.getElementById("checkout-promo-banner");
+  const promoText = `🎉 <strong>Early Bird Special:</strong> Book your order now (between ${settings.earlyBookingStart} - ${settings.earlyBookingEnd}) for delivery after ${settings.earlyBookingDeliveryMinTime} and save <strong>${settings.earlyBookingDiscountPercent}%</strong>!`;
+  
+  if (cartBanner) {
+    if (isEarlyBookingActiveNow) {
+      cartBanner.innerHTML = promoText;
+      cartBanner.style.display = "flex";
+    } else {
+      cartBanner.style.display = "none";
+    }
+  }
+  if (checkoutBanner) {
+    if (isEarlyBookingActiveNow) {
+      checkoutBanner.innerHTML = promoText;
+      checkoutBanner.style.display = "flex";
+    } else {
+      checkoutBanner.style.display = "none";
+    }
+  }
   const delivery = calculateDeliveryCharge(cartSubtotal, settings);
   const lateNight = (cartSubtotal > 0 && settings.lateNightFeeEnabled) ? settings.lateNightFeeAmount : 0;
   
@@ -1241,9 +1264,13 @@ function updateCartDisplay() {
   let dynamicDiscount = 0;
   const isScheduledLater = document.querySelector('input[name="delivery-option"]:checked')?.value === 'later';
   const selectedSlotEl = document.getElementById("delivery-time-slot");
-  const isOffPeakSlot = isScheduledLater && selectedSlotEl && selectedSlotEl.options[selectedSlotEl.selectedIndex]?.dataset.isPeak === "false";
+  const selectedSlotOption = selectedSlotEl ? selectedSlotEl.options[selectedSlotEl.selectedIndex] : null;
+  const isOffPeakSlot = isScheduledLater && selectedSlotOption && selectedSlotOption.dataset.isPeak === "false";
+  const isEarlyBirdSlot = isScheduledLater && selectedSlotOption && selectedSlotOption.dataset.isEarlyBird === "true";
   
-  if (isOffPeakSlot && settings.discountPercent > 0) {
+  if (isEarlyBirdSlot && settings.earlyBookingDiscountPercent > 0) {
+    dynamicDiscount += cartSubtotal * (settings.earlyBookingDiscountPercent / 100);
+  } else if (isOffPeakSlot && settings.discountPercent > 0) {
     dynamicDiscount += cartSubtotal * (settings.discountPercent / 100);
   }
   
@@ -1316,7 +1343,11 @@ function updateCartDisplay() {
       cartDiscountRow.style.display = "flex";
       let discountLabels = [];
       if (appliedPromoCode) discountLabels.push(`${appliedPromoCode.code} (${appliedPromoCode.discountPercent}%)`);
-      if (isOffPeakSlot) discountLabels.push(`Off-Peak (${settings.discountPercent}%)`);
+      if (isEarlyBirdSlot) {
+        discountLabels.push(`Early-Bird (${settings.earlyBookingDiscountPercent}%)`);
+      } else if (isOffPeakSlot) {
+        discountLabels.push(`Off-Peak (${settings.discountPercent}%)`);
+      }
       const hasBackorder = cart.some(i => i.is_backorder);
       if (hasBackorder) discountLabels.push(`Pre-Order (${settings.discountPercent}%)`);
       
@@ -1360,7 +1391,11 @@ function updateCartDisplay() {
       checkoutDiscountRow.style.display = "flex";
       let discountLabels = [];
       if (appliedPromoCode) discountLabels.push(`${appliedPromoCode.code} (${appliedPromoCode.discountPercent}%)`);
-      if (isOffPeakSlot) discountLabels.push(`Off-Peak (${settings.discountPercent}%)`);
+      if (isEarlyBirdSlot) {
+        discountLabels.push(`Early-Bird (${settings.earlyBookingDiscountPercent}%)`);
+      } else if (isOffPeakSlot) {
+        discountLabels.push(`Off-Peak (${settings.discountPercent}%)`);
+      }
       const hasBackorder = cart.some(i => i.is_backorder);
       if (hasBackorder) discountLabels.push(`Pre-Order (${settings.discountPercent}%)`);
       
@@ -1732,9 +1767,13 @@ async function submitOrder(event) {
   const scheduledTimeSlot = deliveryOption === 'later' ? document.getElementById("delivery-time-slot")?.value || '' : '';
   
   const selectedSlotEl = document.getElementById("delivery-time-slot");
-  const isOffPeakSlot = deliveryOption === 'later' && selectedSlotEl && selectedSlotEl.options[selectedSlotEl.selectedIndex]?.dataset.isPeak === "false";
+  const selectedSlotOption = selectedSlotEl ? selectedSlotEl.options[selectedSlotEl.selectedIndex] : null;
+  const isOffPeakSlot = deliveryOption === 'later' && selectedSlotOption && selectedSlotOption.dataset.isPeak === "false";
+  const isEarlyBirdSlot = deliveryOption === 'later' && selectedSlotOption && selectedSlotOption.dataset.isEarlyBird === "true";
   
-  if (isOffPeakSlot && settings.discountPercent > 0) {
+  if (isEarlyBirdSlot && settings.earlyBookingDiscountPercent > 0) {
+    dynamicDiscount += cartSubtotal * (settings.earlyBookingDiscountPercent / 100);
+  } else if (isOffPeakSlot && settings.discountPercent > 0) {
     dynamicDiscount += cartSubtotal * (settings.discountPercent / 100);
   }
   
@@ -2185,6 +2224,20 @@ function downloadReceiptPDF() {
   window.print();
 }
 
+// --- TIME HELPER FUNCTIONS ---
+function isCurrentTimeInWindow(startStr, endStr) {
+  if (!startStr || !endStr) return false;
+  const now = new Date();
+  const currentMin = now.getHours() * 60 + now.getMinutes();
+  
+  const parseTime = (str) => {
+    const [h, m] = str.split(":").map(Number);
+    return h * 60 + m;
+  };
+  
+  return currentMin >= parseTime(startStr) && currentMin <= parseTime(endStr);
+}
+
 // --- ORDER SCHEDULING CONTROLLERS ---
 function toggleSchedulingSelect(show) {
   const container = document.getElementById("scheduling-select-container");
@@ -2199,9 +2252,12 @@ function handleTimeSlotChange() {
   const info = document.getElementById("scheduling-discount-info");
   if (select && info) {
     const selectedOption = select.options[select.selectedIndex];
+    const isEarlyBird = selectedOption?.dataset.isEarlyBird === "true";
     const isPeak = selectedOption?.dataset.isPeak === "true";
     const settings = TFL_DB.getSettings();
-    if (!isPeak && settings.discountPercent > 0) {
+    if (isEarlyBird && settings.earlyBookingDiscountPercent > 0) {
+      info.innerText = `🎉 Early Booking Promo Applied! Save ${settings.earlyBookingDiscountPercent}% on this order!`;
+    } else if (!isPeak && settings.discountPercent > 0) {
       info.innerText = `🎉 Off-Peak Slot Selected! Save ${settings.discountPercent}% on this order!`;
     } else {
       info.innerText = isPeak ? "Peak Hour Slot selected (Normal Pricing applies)" : "";
@@ -2236,6 +2292,10 @@ function populateTimeSlots(settings) {
   };
   const peakStart = parseTime(settings.peakHourStart || "19:30");
   const peakEnd = parseTime(settings.peakHourEnd || "21:00");
+  
+  // Check if Early Booking is active right now
+  const isEarlyBookingActive = settings.earlyBookingEnabled && isCurrentTimeInWindow(settings.earlyBookingStart, settings.earlyBookingEnd);
+  const earlyBookingMinMin = parseTime(settings.earlyBookingDeliveryMinTime || "20:00");
 
   let optionsAdded = 0;
   for (let m = startMinutes; m <= endMinutes; m += 30) {
@@ -2243,15 +2303,21 @@ function populateTimeSlots(settings) {
     const mm = String(m % 60).padStart(2, '0');
     const slotTimeStr = `${hh}:${mm}`;
     
-    // Check if slot falls in peak hour window
+    // Check if slot falls in early bird window
+    const isEarlyBird = isEarlyBookingActive && m >= earlyBookingMinMin;
     const isPeak = m >= peakStart && m <= peakEnd;
-    const discountNote = !isPeak && settings.discountPercent > 0 
-      ? ` (Save ${settings.discountPercent}%)` 
-      : "";
+    
+    let discountNote = "";
+    if (isEarlyBird) {
+      discountNote = ` (Early Booking Save ${settings.earlyBookingDiscountPercent}%)`;
+    } else if (!isPeak && settings.discountPercent > 0) {
+      discountNote = ` (Save ${settings.discountPercent}%)`;
+    }
     
     const option = document.createElement("option");
     option.value = slotTimeStr;
     option.dataset.isPeak = isPeak;
+    option.dataset.isEarlyBird = isEarlyBird;
     option.innerText = `${slotTimeStr}${discountNote}`;
     select.appendChild(option);
     optionsAdded++;
@@ -2271,3 +2337,4 @@ window.handleTimeSlotChange = handleTimeSlotChange;
 window.populateTimeSlots = populateTimeSlots;
 window.printReceipt = printReceipt;
 window.downloadReceiptPDF = downloadReceiptPDF;
+window.isCurrentTimeInWindow = isCurrentTimeInWindow;
