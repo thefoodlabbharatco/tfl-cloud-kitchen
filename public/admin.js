@@ -644,6 +644,9 @@ function renderOrdersTable() {
   filtered.forEach(order => {
     // Formulate details HTML
     let itemsDetailHtml = "";
+    const hasPreOrder = order.items.some(item => item.is_backorder);
+    const maxDelay = order.items.reduce((max, item) => item.is_backorder ? Math.max(max, item.prep_delay_minutes || 20) : max, 0);
+    
     order.items.forEach(item => {
       const condimentNames = item.condiments.map(c => {
         if (typeof c === 'object' && c !== null) {
@@ -658,6 +661,10 @@ function renderOrdersTable() {
         : "";
       itemsDetailHtml += `<div>• ${item.name} x ${item.quantity}${condimentText}${preOrderBadgeHtml}</div>`;
     });
+    
+    if (hasPreOrder) {
+      itemsDetailHtml += `<div style="font-size: 0.72rem; color: #d97706; font-weight: 700; margin-top: 6px; padding: 4px 8px; background: rgba(245, 158, 11, 0.08); border-radius: 6px; border: 1px solid rgba(245, 158, 11, 0.18); display: inline-block;">⏰ Pre-Order Order: Staff has +${maxDelay}m extra prep time</div>`;
+    }
     
     // Calculate cost details for Owner/Manager transparency
     let orderCost = 0;
@@ -705,9 +712,15 @@ function renderOrdersTable() {
       </select>
     `;
     
+    const preOrderOrderBadge = hasPreOrder
+      ? `<div style="font-size: 0.65rem; padding: 2px 6px; background: #d97706; color: #fff; border-radius: 4px; font-weight: bold; text-align: center; margin-top: 6px; display: inline-block; width: max-content; letter-spacing: 0.05em; text-transform: uppercase;">Pre-Order</div>`
+      : "";
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td data-label="Order ID" style="font-weight: 600; color: var(--color-primary);">${order.id}</td>
+      <td data-label="Order ID" style="font-weight: 600; color: var(--color-primary);">
+        <div>${order.id}</div>
+        ${preOrderOrderBadge}
+      </td>
       <td data-label="Date / Time" style="font-size: 0.8rem; line-height: 1.3;">
         <div>${order.orderDate.split(', ')[0]}</div>
         <div style="color: var(--color-text-muted);">${order.orderDate.split(', ')[1] || ''}</div>
@@ -996,7 +1009,8 @@ function resendOrderDetailsWhatsApp(orderId) {
   message += `--------------------------------------\n\n`;
   
   order.items.forEach(item => {
-    message += `${item.name} x ${item.quantity} - Rs ${(item.price * item.quantity)}\n`;
+    const preOrderText = item.is_backorder ? ` [Pre-Order: +${item.prep_delay_minutes || 20}m delay]` : "";
+    message += `${item.name} x ${item.quantity}${preOrderText} - Rs ${(item.price * item.quantity)}\n`;
     if (item.condiments && item.condiments.length > 0) {
       const addons = item.condiments.map(c => {
         if (typeof c === 'object' && c !== null) {
@@ -1125,6 +1139,12 @@ function printReceiptFromAdmin(orderId) {
     `
     : '';
 
+  const hasPreOrder = order.items.some(item => item.is_backorder);
+  const maxDelay = order.items.reduce((max, item) => item.is_backorder ? Math.max(max, item.prep_delay_minutes || 20) : max, 0);
+  const preOrderPrintBanner = hasPreOrder
+    ? `<div style="border: 2px solid #000; padding: 6px; font-weight: bold; margin: 10px 0; font-size: 13px; text-transform: uppercase; line-height: 1.4;">*** PRE-ORDER ORDER ***<br>PREP TIME: +${maxDelay} MINS (DO NOT RUSH)</div>`
+    : "";
+
   printWindow.document.write(`
     <html>
     <head>
@@ -1140,6 +1160,7 @@ function printReceiptFromAdmin(orderId) {
       <div class="center">
         <h3 style="margin: 0; font-size: 18px;">${settings.restaurantName.toUpperCase()}</h3>
         <p style="margin: 2px 0 10px 0; font-size: 12px;">${settings.tagline.toUpperCase()}</p>
+        ${preOrderPrintBanner}
         <div><strong>Order ID:</strong> ${order.id}</div>
         <div><strong>Date:</strong> ${order.orderDate}</div>
       </div>
@@ -2972,6 +2993,8 @@ function addManualOrderItem() {
       }
     });
   } else {
+    const remaining = product.stockLimit !== undefined && product.stockLimit !== null ? Math.max(0, product.stockLimit - (product.currentStockSold || 0)) : null;
+    const isOutOfStock = product.inStock === false || (remaining !== null && remaining <= 0);
     manualOrderCart.push({
       id: product.id,
       name: product.name,
@@ -2980,7 +3003,9 @@ function addManualOrderItem() {
       quantity: qty,
       condiments: selectedCondiments,
       category: product.category,
-      subBrand: product.category
+      subBrand: product.category,
+      is_backorder: isOutOfStock,
+      prep_delay_minutes: isOutOfStock ? (product.prepDelay || 20) : undefined
     });
   }
   
@@ -3029,9 +3054,12 @@ function renderManualOrderCart() {
     div.style.background = "rgba(255, 255, 255, 0.05)";
     div.style.borderRadius = "var(--radius-sm)";
     div.style.fontSize = "0.8rem";
+    const preOrderBadgeText = item.is_backorder 
+      ? ` <span class="status-pill status-pending" style="font-size: 0.62rem; padding: 1px 4px; background: rgba(245, 158, 11, 0.15) !important; color: #f59e0b !important; border: 1px solid rgba(245, 158, 11, 0.3) !important; font-weight: 700;">Pre-Order (+${item.prep_delay_minutes || 20}m)</span>`
+      : "";
     div.innerHTML = `
       <div style="display: flex; flex-direction: column;">
-        <span style="color: #fff;">${item.name} x <strong>${item.quantity}</strong></span>
+        <span style="color: #fff;">${item.name} x <strong>${item.quantity}</strong>${preOrderBadgeText}</span>
         ${condimentText}
       </div>
       <div style="display: flex; align-items: center; gap: 10px;">

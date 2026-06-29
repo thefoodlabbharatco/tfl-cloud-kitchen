@@ -2022,7 +2022,8 @@ function sendOrderWhatsApp(options = {}) {
   message += `--------------------------------------\n\n`;
   
   currentReceiptOrder.items.forEach(item => {
-    message += `${item.name} x ${item.quantity} - Rs ${(item.price * item.quantity).toFixed(2)}\n`;
+    const preOrderText = item.is_backorder ? ` [Pre-Order: +${item.prep_delay_minutes || 20}m delay]` : "";
+    message += `${item.name} x ${item.quantity}${preOrderText} - Rs ${(item.price * item.quantity).toFixed(2)}\n`;
     const addons = item.condiments.map(c => {
       if (c && typeof c === 'object') {
         const qtyText = c.quantity && c.quantity > 1 ? ` (x${c.quantity})` : '';
